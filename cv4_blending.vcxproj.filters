@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{5A40C82A-DF67-4B3B-9588-07BF0C8E2C3C}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{267DDD3E-1D4A-44F8-BCD4-999E83C6E4CA}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{9462A1AA-C5DB-4140-A957-11953B355CF1}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{E4ECC393-C440-41F9-96BE-213B1282C329}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Geometries">
+      <UniqueIdentifier>{32C5693F-5976-4476-8DFD-2610AA31E94E}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="cv4_blending_main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PV112.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="cube.inl">
+      <Filter>Geometries</Filter>
+    </None>
+    <None Include="sphere.inl">
+      <Filter>Geometries</Filter>
+    </None>
+    <None Include="teapot.inl">
+      <Filter>Geometries</Filter>
+    </None>
+    <None Include="cube_fragment.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="cube_vertex.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="teapot_fragment.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="teapot_vertex.glsl">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PV112.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
