@@ -1,53 +1,18 @@
 // PV112 2017, lesson 4 - textures
 
-#include <iostream>
-#include "PV112.h"
+#include <memory>
 
-#define _USE_MATH_DEFINES
-#include <math.h>
-
-// Include GLEW, use static library
-#define GLEW_STATIC
-#include <GL/glew.h>
-#pragma comment(lib, "glew32s.lib") // Link with GLEW library
-
-// Include DevIL for image loading
-#if defined(_WIN32)
-#pragma comment(lib, "glew32s.lib")
-// On Windows, we use Unicode dll of DevIL
-// That also means we need to use wide strings
-#ifndef _UNICODE
-#define _UNICODE
-#include <IL/il.h>
-#undef _UNICODE
-#else
-#include <IL/il.h>
-#endif
-#pragma comment(lib, "DevIL.lib") // Link with DevIL library
-typedef wchar_t maybewchar;
-#define MAYBEWIDE(s) L##s
-#else // On Linux, we need regular (not wide) strings
-#include <IL/il.h>
-typedef char maybewchar;
-#define MAYBEWIDE(s) s
-#endif
-
-// Include FreeGLUT
-#include <GL/freeglut.h>
-
-// Include the most important GLM functions
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include "ball.hpp"
-#include "box.hpp"
+#include "libs.hpp"
 #include "helpers.hpp"
+#include "cube.hpp"
+#include "ball.hpp"
 
 using namespace std;
 using namespace PV112;
 
 // Current window size
-int win_width = 480;
-int win_height = 480;
+int win_width = 800;
+int win_height = 800;
 
 // Shader program and its uniforms
 GLuint program;
@@ -86,10 +51,11 @@ GLuint wood_tex;
 GLuint alpha_circle_tex;
 GLuint dice_tex[6];
 
-Ball g_ball;
+std::vector<std::unique_ptr<Object>> g_objects;
 
 // Current time of the application in seconds, for animations
 float app_time_s = 0.0f;
+float prev_time_s = 0.0f;
 
 // Called when the user presses a key
 void key_pressed(unsigned char key, int mouseX, int mouseY)
@@ -163,10 +129,25 @@ void init()
     wood_tex_loc = glGetUniformLocation(program, "wood_tex");
     dice_tex_loc = glGetUniformLocation(program, "dice_tex");
 
-    g_ball = Ball(program);
 
-    // Create geometries
-    my_cube = CreateCube(position_loc, normal_loc, tex_coord_loc);
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 1)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 0.1)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(0,1.,0.), 0.3, Motion({-0.1, -1., 0}, 0.4)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Cube>(program,
+        glm::vec3(0,0,0), 0.3)));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(1,1.,0.), 0.3, Motion({-1., -1.1, 0}, 0.5)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(0,0.,1.), 0.2, Motion({0., 0.1, -1.0}, 0.5)
+    )));
+
 
     // Lenna texture
 
@@ -185,26 +166,26 @@ void init()
 
     // Rocks texture
 
-    rocks_tex = CreateAndLoadTexture(MAYBEWIDE("rocks.jpg"));
-    glBindTexture(GL_TEXTURE_2D, rocks_tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // rocks_tex = CreateAndLoadTexture(MAYBEWIDE("rocks.jpg"));
+    // glBindTexture(GL_TEXTURE_2D, rocks_tex);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glGenerateMipmap(GL_TEXTURE_2D);
+    // glBindTexture(GL_TEXTURE_2D, 0);
 
 
-    // Wood texture
+    // // Wood texture
 
-    wood_tex = CreateAndLoadTexture(MAYBEWIDE("wood.jpg"));
-    glBindTexture(GL_TEXTURE_2D, wood_tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // wood_tex = CreateAndLoadTexture(MAYBEWIDE("wood.jpg"));
+    // glBindTexture(GL_TEXTURE_2D, wood_tex);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // glGenerateMipmap(GL_TEXTURE_2D);
+    // glBindTexture(GL_TEXTURE_2D, 0);
 
 
     // Dice textures
@@ -266,74 +247,41 @@ void render()
     glUniform3f(light_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform3f(light_specular_color_loc, 1.0f, 1.0f, 1.0f);
 
-    // Cube
-    // glBindVertexArray(my_cube.VAO);
-
-    model_matrix = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f, 1.0f, 3.0f));
-    // model_matrix = glm::mat4(1.0f);
-    model_matrix = g_ball.get_model_matrix(app_time_s);
-
-
-    glUniform1i(my_tex_loc, 0);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, lenna_tex);
-
-
     glUniform3f(material_ambient_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform3f(material_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform3f(material_specular_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform1f(material_shininess_loc, 40.0f);
 
-    PVM_matrix = projection_matrix * view_matrix * model_matrix;
-    normal_matrix = glm::inverse(glm::transpose(glm::mat3(model_matrix)));
-    glUniformMatrix4fv(model_matrix_loc, 1, GL_FALSE, glm::value_ptr(model_matrix));
-    glUniformMatrix4fv(PVM_matrix_loc, 1, GL_FALSE, glm::value_ptr(PVM_matrix));
-    glUniformMatrix3fv(normal_matrix_loc, 1, GL_FALSE, glm::value_ptr(normal_matrix));
+    for (size_t i = 0; i < g_objects.size(); ++i) {
+        const auto& obj_A = g_objects.at(i);
+        for (size_t j = i + 1; j < g_objects.size(); ++j) {
+            const auto& obj_B = g_objects.at(j);
+            if (obj_A->check_collision(*obj_B)) {
+                obj_A->bounce(*obj_B);
+            }
+        }
+    }
 
-#if 1
-    // Draw a cube ...
-    // DrawGeometry(my_cube);
-#else
+    for (const auto& obj : g_objects) {
+        model_matrix = obj->update_geometry(app_time_s - prev_time_s);
 
-    // ... or draw a dice
-    glUniform1i(wood_tex_loc, 0); // Choose proper texture unit
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, wood_tex);
-    DrawGeometry(my_cube);
+        PVM_matrix = projection_matrix * view_matrix * model_matrix;
+        normal_matrix = glm::inverse(glm::transpose(glm::mat3(model_matrix)));
+        glUniformMatrix4fv(model_matrix_loc, 1, GL_FALSE, glm::value_ptr(model_matrix));
+        glUniformMatrix4fv(PVM_matrix_loc, 1, GL_FALSE, glm::value_ptr(PVM_matrix));
+        glUniformMatrix3fv(normal_matrix_loc, 1, GL_FALSE, glm::value_ptr(normal_matrix));
 
-    glUniform1i(rocks_tex_loc, 1); // Choose proper texture unit
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, rocks_tex);
 
-    glUniform1i(dice_tex_loc, 2); // Choose proper texture unit
-    glActiveTexture(GL_TEXTURE2);
-
-    glBindTexture(GL_TEXTURE_2D, dice_tex[0]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-            (const void *)(sizeof(unsigned int) *  0)); // Front face
-    glBindTexture(GL_TEXTURE_2D, dice_tex[1]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-            (const void *)(sizeof(unsigned int) *  6)); // Right face
-    glBindTexture(GL_TEXTURE_2D, dice_tex[5]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-            (const void *)(sizeof(unsigned int) * 12)); // Back face
-    glBindTexture(GL_TEXTURE_2D, dice_tex[4]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-            (const void *)(sizeof(unsigned int) * 18)); // Left face
-    glBindTexture(GL_TEXTURE_2D, dice_tex[2]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-            (const void *)(sizeof(unsigned int) * 24)); // Top face
-    // glBindTexture(GL_TEXTURE_2D, dice_tex[3]);
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,
-    //         (const void *)(sizeof(unsigned int) * 30)); // Bottom face
-#endif
-
-    g_ball.render(app_time_s);
+        obj->render(app_time_s);
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);
 
     glutSwapBuffers();
+    if (app_time_s > 5) {
+        throw "AAAA";
+    }
 }
 
 // Called when the window changes its size
@@ -365,6 +313,7 @@ void GLAPIENTRY simple_debug_callback(GLenum source, GLenum type, GLuint id,
 // Simple timer function for animations
 void timer(int)
 {
+    prev_time_s = app_time_s;
     app_time_s += 0.020f;
     glutTimerFunc(20, timer, 0);
     glutPostRedisplay();
@@ -378,7 +327,7 @@ int main(int argc, char ** argv)
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
     // Set OpenGL Context parameters
-    glutInitContextVersion(3, 3);
+    glutInitContextVersion(1, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitContextFlags(GLUT_DEBUG);
 

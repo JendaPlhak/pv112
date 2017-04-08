@@ -1,13 +1,15 @@
 #pragma once
 
-#include <iostream>
+#include "libs.hpp"
+// Include the most important GLM functions
 
 namespace PV112 {
+
 
 // Loads a texture from file and calls glTexImage2D to se its data.
 // Returns true on success or false on failure.
 // NOTE 1a) Describe
-bool LoadAndSetTexture(const maybewchar *filename, GLenum target)
+inline bool LoadAndSetTexture(const maybewchar *filename, GLenum target)
 {
     // Create IL image
     ILuint IL_tex;
@@ -68,7 +70,7 @@ bool LoadAndSetTexture(const maybewchar *filename, GLenum target)
     return true;
 }
 
-GLuint CreateAndLoadTexture(const maybewchar *filename)
+inline GLuint CreateAndLoadTexture(const maybewchar *filename)
 {
     // Create OpenGL texture object
     GLuint tex_obj;
@@ -87,7 +89,7 @@ GLuint CreateAndLoadTexture(const maybewchar *filename)
     return tex_obj;
 }
 
-GLuint CreateAndLoadTextureCube(
+inline GLuint CreateAndLoadTextureCube(
     const maybewchar *filename_px, const maybewchar *filename_nx,
     const maybewchar *filename_py, const maybewchar *filename_ny,
     const maybewchar *filename_pz, const maybewchar *filename_nz)

@@ -1,12 +1,9 @@
 #pragma once
-
+#include <cassert>
+#include "libs.hpp"
 #include "helpers.hpp"
 #include "object.hpp"
 
-struct Motion {
-    float speed;
-    glm::vec3 dir;
-};
 
 class Ball : public Object {
 private:
@@ -18,14 +15,33 @@ private:
     PV112::PV112Geometry m_sphere;
     glm::vec3 m_center;
     float m_radius;
-    Motion m_motion;
 public:
     Ball() = default;
-    Ball(const GLuint program)
-     : Object({{1., 0, 0}, {1., 0, 0}}),
-       m_program(program), m_center(0.f, 0.f, 0.f), m_radius(1.),
-       m_motion({0.5, {1., 0, 0}})
+    Ball(const GLuint program, const glm::vec3& center, const float radius)
+     : Object({center, {radius, radius, radius}}),
+       m_program(program), m_center(center), m_radius(radius)
     {
+        this->init();
+    }
+    Ball(const GLuint program, const glm::vec3& center, const float radius,
+        const Motion& motion)
+     : Object({center, {radius, radius, radius}}, motion),
+       m_program(program), m_center(center), m_radius(radius)
+    {
+        this->init();
+    }
+
+    virtual float mass() const final override {
+        return 4. * 3.14 * m_radius * m_radius * m_radius / 3.;
+    }
+    glm::vec3 get_center() const {
+        return m_center;
+    }
+    float get_radius() const {
+        return m_radius;
+    }
+
+    void init() {
         int position_loc  = glGetAttribLocation(m_program, "position");
         int normal_loc    = glGetAttribLocation(m_program, "normal");
         int tex_coord_loc = glGetAttribLocation(m_program, "tex_coord");
@@ -48,14 +64,16 @@ public:
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    glm::mat4 get_model_matrix(const float time) {
-        m_center.x = glm::sin(time * m_motion.speed);
-        m_center.y = glm::cos(time * m_motion.speed);
-        std::cout << m_center.x << std::endl;
-        std::cout << m_center.y << std::endl;
+    virtual glm::mat4 update_geometry(const float time_delta) final override {
+        // auto tmp_center = m_center;
+        // tmp_center.x = m_center.x + glm::sin(time * m_motion.speed) / 2.;
+        // tmp_center.y = m_center.y + glm::cos(time * m_motion.speed) / 2.;
+        m_center = m_center + time_delta * m_motion.v;
+        m_aabb.set_center(m_center);
+        auto model_matrix = glm::translate(glm::mat4(1.f), m_center);
+        model_matrix = glm::scale(model_matrix, glm::vec3(m_radius));
 
-        // m_center = m_center + time * m_motion.speed * m_motion.dir;
-        return glm::translate(glm::mat4(1.f), m_center);;
+        return model_matrix;
     }
 
     void render(const float time) final override {
@@ -70,12 +88,23 @@ public:
     virtual bool check_collision(const Object& other) const final override {
         return other.check_collision_what(*this);
     }
+    virtual glm::vec3 bounce_normal(const Object& other) const final override {
+        return other.bounce_normal_what(*this);
+    }
 
-private:
     virtual bool check_collision_what(const Ball& other) const final override {
         return glm::length(m_center - other.m_center) <= m_radius + other.m_radius;
     }
-    virtual bool check_collision_what(const Box& other) const final override {
-        return m_aabb.check_collision(other.m_aabb);
+    virtual bool check_collision_what(const Cube& other) const final override {
+        return other.check_collision_what(*this);
+    }
+    virtual glm::vec3 bounce_normal_what(const Ball& other) const final override {
+        // First, find the normalized vector n from the center of
+        // circle1 to the center of circle2
+        return glm::normalize(m_center - other.m_center);
+    }
+    virtual glm::vec3 bounce_normal_what(const Cube& other) const final override {
+        std::cout << "AAAAAAAAA\n";
+        return -other.bounce_normal_what(*this);
     }
 };
