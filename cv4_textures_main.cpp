@@ -4,7 +4,7 @@
 
 #include "libs.hpp"
 #include "helpers.hpp"
-#include "cube.hpp"
+#include "cuboid.hpp"
 #include "ball.hpp"
 
 using namespace std;
@@ -139,13 +139,24 @@ void init()
     g_objects.push_back(std::move(std::make_unique<Ball>(
         program, glm::vec3(0,1.,0.), 0.3, Motion({-0.1, -1., 0}, 0.4)
     )));
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+        glm::vec3(0,0,0), glm::vec3(0.3, 0.5, 0.1)
+    )));
     g_objects.push_back(std::move(std::make_unique<Cube>(program,
-        glm::vec3(0,0,0), 0.3)));
+        glm::vec3(1,1,1), 1
+    )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
         program, glm::vec3(1,1.,0.), 0.3, Motion({-1., -1.1, 0}, 0.5)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
         program, glm::vec3(0,0.,1.), 0.2, Motion({0., 0.1, -1.0}, 0.5)
+    )));
+
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+        glm::vec3(2,0,0), glm::vec3(0.3, 2, 0.1), Motion({-1., 0.9, 0}, 0.4)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Cube>(program,
+        glm::vec3(-2,0,0), 1, Motion({1., -1, 0}, 0.4)
     )));
 
 

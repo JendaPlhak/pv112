@@ -3,7 +3,7 @@
 #include "libs.hpp"
 
 class Ball;
-class Cube;
+class Cuboid;
 
 class AABB {
 private:
@@ -57,11 +57,11 @@ public:
     virtual void render(const float time) = 0;
     virtual bool check_collision(const Object&) const = 0;
     virtual bool check_collision_what(const Ball&) const = 0;
-    virtual bool check_collision_what(const Cube&) const = 0;
+    virtual bool check_collision_what(const Cuboid&) const = 0;
 
     virtual float mass() const = 0;
     virtual void bounce(Object& other) {
-        if (m_last_contact == other.m_id || other.m_last_contact == m_id) {
+        if (m_last_contact == other.m_id && other.m_last_contact == m_id) {
             return;
         } else {
             m_last_contact = other.m_id;
@@ -88,5 +88,5 @@ public:
     }
     virtual glm::vec3 bounce_normal(const Object&) const = 0;
     virtual glm::vec3 bounce_normal_what(const Ball&) const = 0;
-    virtual glm::vec3 bounce_normal_what(const Cube&) const = 0;
+    virtual glm::vec3 bounce_normal_what(const Cuboid&) const = 0;
 };

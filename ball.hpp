@@ -95,7 +95,7 @@ public:
     virtual bool check_collision_what(const Ball& other) const final override {
         return glm::length(m_center - other.m_center) <= m_radius + other.m_radius;
     }
-    virtual bool check_collision_what(const Cube& other) const final override {
+    virtual bool check_collision_what(const Cuboid& other) const final override {
         return other.check_collision_what(*this);
     }
     virtual glm::vec3 bounce_normal_what(const Ball& other) const final override {
@@ -103,8 +103,7 @@ public:
         // circle1 to the center of circle2
         return glm::normalize(m_center - other.m_center);
     }
-    virtual glm::vec3 bounce_normal_what(const Cube& other) const final override {
-        std::cout << "AAAAAAAAA\n";
-        return -other.bounce_normal_what(*this);
+    virtual glm::vec3 bounce_normal_what(const Cuboid& other) const final override {
+        return other.bounce_normal_what(*this);
     }
 };
