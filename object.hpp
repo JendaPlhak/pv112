@@ -18,6 +18,9 @@ public:
     void set_center(const glm::vec3& new_center) {
         m_center = new_center;
     }
+    glm::vec3 get_center() const {
+        return m_center;
+    }
 
     bool check_collision(const AABB& other) const {
         return std::abs(m_center.x - other.m_center.x) <= m_halfwidths.x + other.m_halfwidths.x
@@ -28,9 +31,24 @@ public:
 
 struct Motion {
     Motion(const glm::vec3& dir, const float speed)
-     : v(speed * glm::normalize(dir))
+     : v(speed * glm::normalize(dir)), bounciness(1), active(true)
     {}
+    Motion(const glm::vec3& dir, const float speed, const float bounciness)
+     : v(speed * glm::normalize(dir)), bounciness(bounciness), active(true)
+    {}
+    Motion(const bool is_active)
+     : v(0), bounciness(0), active(is_active)
+    {
+        assert(!active);
+    }
+    void account_gravity(const float time_delta) {
+        if (this->active) {
+            this->v += time_delta * 3.f * glm::normalize(glm::vec3(0, -1., 0.));
+        }
+    }
     glm::vec3 v;
+    float bounciness;
+    bool active;
 };
 
 class Object {
@@ -41,6 +59,7 @@ protected:
     uint32_t m_last_contact = -1;
     AABB m_aabb;
     Motion m_motion;
+    bool m_fixed = false;
 
 public:
     Object() = default;
@@ -53,6 +72,9 @@ public:
     const AABB& get_aabb() const {
         return m_aabb;
     }
+    const bool is_active() const {
+        return m_motion.active;
+    }
     virtual glm::mat4 update_geometry(const float time_delta) = 0;
     virtual void render(const float time) = 0;
     virtual bool check_collision(const Object&) const = 0;
@@ -61,32 +83,56 @@ public:
 
     virtual float mass() const = 0;
     virtual void bounce(Object& other) {
-        if (m_last_contact == other.m_id && other.m_last_contact == m_id) {
+        if (!this->is_active() && !other.is_active()) {
             return;
-        } else {
-            m_last_contact = other.m_id;
-            other.m_last_contact = m_id;
+        } else if (m_last_contact == other.m_id && other.m_last_contact == m_id) {
+            if (m_motion.active && other.m_motion.active) {
+                return;
+            }
         }
-        // std::cout << "__________________________________\n\n";
+
         auto n = glm::normalize(this->bounce_normal(other));
-        // Find the length of the component of each of the movement
-        // vectors along n.
-        // a1 = v1 . n
-        // a2 = v2 . n
-        // std::cout << "this: " << m_motion.v.x << " " << m_motion.v.y << " " << m_motion.v.z << std::endl;
-        // std::cout << "other: " << other.m_motion.v.x << " " << other.m_motion.v.y << " " <<other.m_motion.v.z << std::endl;
-        float a1 = glm::dot(m_motion.v, n);
-        float a2 = glm::dot(other.m_motion.v, n);
-        // std::cout << "a1 = " << a1 << ", a2 = " << a2 << std::endl;
+        std::cout << "Normal loaded: " << n.x << " " << n.y << " " << n.z << std::endl;
+        auto update_motion = [](auto& v, glm::vec3 n) {
+            v = v - 2 * std::min(0.f, glm::dot(v, n)) * n;
+        };
+        if (!m_motion.active) {
+            // std::cout << "This is static\n";
+            update_motion(other.m_motion.v, n);
+        } else if (!other.m_motion.active) {
+            // std::cout << "Other is static\n";
+            update_motion(m_motion.v, -n);
+        } else {
+            // Find the length of the component of each of the movement
+            // vectors along n.
+            // a1 = v1 . n
+            // a2 = v2 . n
+            // std::cout << "this: " << m_motion.v.x << " " << m_motion.v.y << " " << m_motion.v.z << std::endl;
+            // std::cout << "other: " << other.m_motion.v.x << " " << other.m_motion.v.y << " " <<other.m_motion.v.z << std::endl;
+            float a1 = glm::dot(m_motion.v, n);
+            float a2 = glm::dot(other.m_motion.v, n);
+            // std::cout << "a1 = " << a1 << ", a2 = " << a2 << std::endl;
 
-        // Using the optimized version,
-        float optimizedP = (2.0 * (a1 - a2)) / (this->mass() + other.mass());
+            // Using the optimized version,
+            float optimizedP = (2.0 * (a1 - a2)) / (this->mass() + other.mass());
 
-        m_motion.v = m_motion.v - optimizedP * other.mass() * n;
-        other.m_motion.v = other.m_motion.v + optimizedP * this->mass() * n;
+            m_motion.v = m_motion.v - optimizedP * other.mass() * n;
+            other.m_motion.v = other.m_motion.v + optimizedP * this->mass() * n;
+        }
 
+        if (m_last_contact != other.m_id || other.m_last_contact != m_id) {
+            float bounciness = std::max(m_motion.bounciness, other.m_motion.bounciness);
+            m_motion.v *= bounciness;
+            other.m_motion.v *= bounciness;
+        }
+        this->got_hit(other.m_id);
+        other.got_hit(m_id);
+        m_last_contact = other.m_id;
+        other.m_last_contact = m_id;
     }
     virtual glm::vec3 bounce_normal(const Object&) const = 0;
     virtual glm::vec3 bounce_normal_what(const Ball&) const = 0;
     virtual glm::vec3 bounce_normal_what(const Cuboid&) const = 0;
+    virtual void got_hit(const uint32_t other_id) {
+    }
 };

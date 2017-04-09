@@ -68,8 +68,11 @@ public:
         // auto tmp_center = m_center;
         // tmp_center.x = m_center.x + glm::sin(time * m_motion.speed) / 2.;
         // tmp_center.y = m_center.y + glm::cos(time * m_motion.speed) / 2.;
-        m_center = m_center + time_delta * m_motion.v;
-        m_aabb.set_center(m_center);
+        if (m_motion.active) {
+            m_motion.account_gravity(time_delta);
+            m_center = m_center + time_delta * m_motion.v;
+            m_aabb.set_center(m_center);
+        }
         auto model_matrix = glm::translate(glm::mat4(1.f), m_center);
         model_matrix = glm::scale(model_matrix, glm::vec3(m_radius));
 
@@ -89,7 +92,7 @@ public:
         return other.check_collision_what(*this);
     }
     virtual glm::vec3 bounce_normal(const Object& other) const final override {
-        return other.bounce_normal_what(*this);
+        return -other.bounce_normal_what(*this);
     }
 
     virtual bool check_collision_what(const Ball& other) const final override {
@@ -101,9 +104,9 @@ public:
     virtual glm::vec3 bounce_normal_what(const Ball& other) const final override {
         // First, find the normalized vector n from the center of
         // circle1 to the center of circle2
-        return glm::normalize(m_center - other.m_center);
+        return glm::normalize(other.m_center - m_center);
     }
     virtual glm::vec3 bounce_normal_what(const Cuboid& other) const final override {
-        return other.bounce_normal_what(*this);
+        return -other.bounce_normal_what(*this);
     }
 };

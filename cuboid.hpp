@@ -5,7 +5,7 @@
 #include "object.hpp"
 
 class Cuboid : public Object {
-private:
+protected:
     GLuint m_program;
     GLint  m_loc;
     GLuint m_tex;
@@ -22,7 +22,7 @@ public:
         const glm::vec3& widths, const Motion& motion);
 
     virtual glm::mat4 update_geometry(const float time) final override;
-    virtual void render(const float time_delta) final override;
+    virtual void render(const float time_delta) override;
     virtual bool check_collision(const Object& other) const final override;
     virtual float mass() const final override;
 
@@ -33,7 +33,7 @@ public:
     virtual glm::vec3 bounce_normal_what(const Ball& other) const final override;
     virtual glm::vec3 bounce_normal_what(const Cuboid& other) const final override;
 
-private:
+protected:
     void bind_cube_texture();
     void init();
 };

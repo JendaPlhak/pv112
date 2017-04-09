@@ -6,13 +6,14 @@
 #include "helpers.hpp"
 #include "cuboid.hpp"
 #include "ball.hpp"
+#include "enemy.hpp"
 
 using namespace std;
 using namespace PV112;
 
 // Current window size
-int win_width = 800;
-int win_height = 800;
+int win_width = 600;
+int win_height = 600;
 
 // Shader program and its uniforms
 GLuint program;
@@ -129,34 +130,78 @@ void init()
     wood_tex_loc = glGetUniformLocation(program, "wood_tex");
     dice_tex_loc = glGetUniformLocation(program, "dice_tex");
 
+    std::vector<GLuint> dooms;
+    for (uint32_t i = 0; i < 2; ++i) {
+        std::string path("img/doom" + std::to_string(i) + ".png");
+        auto tex = PV112::CreateAndLoadTexture(path.c_str());
+        dooms.push_back(tex);
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+
+    // g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+    //     glm::vec3(0, -2, 0), glm::vec3(20, 0.1, 20), Motion(false)
+    // )));
+    // g_objects.push_back(std::move(std::make_unique<Ball>(
+    //     program, glm::vec3(0,0,0.), 1, Motion(false)
+    // )));
+    // g_objects.push_back(std::move(std::make_unique<Ball>(
+    //     program, glm::vec3(0,1.5,0.), 0.3, Motion({0, 1., 0}, 2)
+    // )));
+
+
+    // Walls
+    for (const auto sign : {1, -1}) {
+        for (uint32_t i = 0; i < 3; ++i) {
+            glm::vec3 center(0);
+            glm::vec3 widths(20);
+            if (i == 2&& sign == 1) {
+                center[i] = sign * 5.1;
+
+            } else {
+                center[i] = sign * 2.5;
+            }
+            widths[i] = 0.1;
+            g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+                center, widths, Motion(false)
+            )));
+        }
+    }
+
+    g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
+        glm::vec3(1,1,1), 0.4,  Motion(false)
+    )));
 
     g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 1)
+        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 0.1)
+        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,1.,0.), 0.3, Motion({-0.1, -1., 0}, 0.4)
+        program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
     )));
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
-        glm::vec3(0,0,0), glm::vec3(0.3, 0.5, 0.1)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Cube>(program,
-        glm::vec3(1,1,1), 1
+        glm::vec3(0,0,0), glm::vec3(0.1, 0.5, 0.2), Motion({-0.1, -1., 0}, 3.)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(1,1.,0.), 0.3, Motion({-1., -1.1, 0}, 0.5)
+        program, glm::vec3(1,1.,0.), 0.2, Motion({-1., -1.1, 0}, 3)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,0.,1.), 0.2, Motion({0., 0.1, -1.0}, 0.5)
+        program, glm::vec3(0,0.,1.), 0.2, Motion({0., 0.1, 0.0}, 3.5)
     )));
 
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
-        glm::vec3(2,0,0), glm::vec3(0.3, 2, 0.1), Motion({-1., 0.9, 0}, 0.4)
+    g_objects.push_back(std::move(std::make_unique<Ball>(program,
+        glm::vec3(-2,0,0), 0.4, Motion({1., 0, 0}, 4.)
     )));
-    g_objects.push_back(std::move(std::make_unique<Cube>(program,
-        glm::vec3(-2,0,0), 1, Motion({1., -1, 0}, 0.4)
+    g_objects.push_back(std::move(std::make_unique<Ball>(program,
+        glm::vec3(0,0,2), 0.4, Motion({1., 0, 0}, 5.)
     )));
 
 
@@ -267,7 +312,11 @@ void render()
         const auto& obj_A = g_objects.at(i);
         for (size_t j = i + 1; j < g_objects.size(); ++j) {
             const auto& obj_B = g_objects.at(j);
+            if (!obj_A->is_active() && !obj_B->is_active()) {
+                continue;
+            }
             if (obj_A->check_collision(*obj_B)) {
+                std::cout << "Collision!\n";
                 obj_A->bounce(*obj_B);
             }
         }
@@ -282,7 +331,6 @@ void render()
         glUniformMatrix4fv(PVM_matrix_loc, 1, GL_FALSE, glm::value_ptr(PVM_matrix));
         glUniformMatrix3fv(normal_matrix_loc, 1, GL_FALSE, glm::value_ptr(normal_matrix));
 
-
         obj->render(app_time_s);
     }
 
@@ -290,7 +338,7 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    if (app_time_s > 5) {
+    if (app_time_s > 30) {
         throw "AAAA";
     }
 }

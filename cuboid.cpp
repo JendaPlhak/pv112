@@ -47,8 +47,11 @@ Cuboid::bind_cube_texture() {
 
 glm::mat4
 Cuboid::update_geometry(const float time_delta) {
-    m_center = m_center + time_delta * m_motion.v;
-    m_aabb.set_center(m_center);
+    if (m_motion.active) {
+        m_motion.account_gravity(time_delta);
+        m_center = m_center + time_delta * m_motion.v;
+        m_aabb.set_center(m_center);
+    }
 
     auto model_matrix = glm::translate(glm::mat4(1.f), m_center);
     model_matrix = glm::scale(model_matrix, m_halfw);
@@ -96,27 +99,29 @@ Cuboid::check_collision_what(const Cuboid& other) const {
 
 glm::vec3
 Cuboid::bounce_normal(const Object& other) const {
-    return other.bounce_normal_what(*this);
+    return -other.bounce_normal_what(*this);
 }
 glm::vec3
 Cuboid::bounce_normal_what(const Ball& ball) const {
     std::vector<glm::vec3> normals = {
         {1, 0, 0}, {-1, 0, 0},
         {0, 1, 0}, {0, -1, 0},
-        {0, 0, -1}, {0, 0, -1}
+        {0, 0, 1}, {0, 0, -1}
     };
     auto ball_c = ball.get_center();
     float best_dst = std::numeric_limits<float>::max();
     glm::vec3 best_n(0);
+
     for (const auto& n : normals) {
-        auto p_center = m_center + n * m_halfw;
         auto p = plane_line_inter(n, m_center + n * m_halfw, m_center, ball_c);
         float dst = glm::length(m_center - p);
+        // std::cout << "dst: "<< dst <<" normal: " << n.x << " " << n.y << " " << n.z << std::endl<< std::endl;
         if (glm::dot(m_center - p, ball_c - p) < 0 && dst < best_dst) {
-            return n;
+            best_dst = dst;
+            best_n = n;
         }
     }
-    // std::cout << best_n.x << " " << best_n.y << " " << best_n.z << std::endl;
+    // std::cout << "Normal: " << best_n.x << " " << best_n.y << " " << best_n.z << std::endl<< std::endl;
     return best_n;
 }
 glm::vec3
@@ -135,6 +140,6 @@ Cuboid::bounce_normal_what(const Cuboid& other) const {
             }
         }
     }
-    std::cout << best_n.x << " " << best_n.y << " " << best_n.z << std::endl;
+    // std::cout << "Normal: " << best_n.x << " " << best_n.y << " " << best_n.z << std::endl;
     return best_n;
 }
