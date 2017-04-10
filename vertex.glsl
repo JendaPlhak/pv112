@@ -16,7 +16,7 @@ void main()
 {
     //VS_tex_coord = tex_coord * 20.0 - 10.0;
     //VS_tex_coord = tex_coord * 20.0;
-    VS_tex_coord = tex_coord * 5;
+    VS_tex_coord = tex_coord;
 
     VS_position_ws = vec3(model_matrix * position);
     VS_normal_ws = normalize(normal_matrix * normal);

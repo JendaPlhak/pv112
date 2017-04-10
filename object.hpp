@@ -92,7 +92,7 @@ public:
         }
 
         auto n = glm::normalize(this->bounce_normal(other));
-        std::cout << "Normal loaded: " << n.x << " " << n.y << " " << n.z << std::endl;
+        // std::cout << "Normal loaded: " << n.x << " " << n.y << " " << n.z << std::endl;
         auto update_motion = [](auto& v, glm::vec3 n) {
             v = v - 2 * std::min(0.f, glm::dot(v, n)) * n;
         };

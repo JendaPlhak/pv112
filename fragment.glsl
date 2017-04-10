@@ -11,7 +11,8 @@ uniform vec3 material_diffuse_color;
 uniform vec3 material_specular_color;
 uniform float material_shininess;
 
-uniform vec4 light_position;
+uniform vec4 light1_position;
+uniform vec4 light2_position;
 uniform vec3 light_ambient_color;
 uniform vec3 light_diffuse_color;
 uniform vec3 light_specular_color;
@@ -33,7 +34,9 @@ void main()
     vec3 N = normalize(VS_normal_ws);
     vec3 Eye = normalize(eye_position - VS_position_ws);
 
-    vec3 L = normalize(light_position.xyz - VS_position_ws * light_position.w);
+    vec3 L1 = normalize(light1_position.xyz - VS_position_ws * light1_position.w);
+    vec3 L2 = normalize(light2_position.xyz - VS_position_ws * light2_position.w);
+    vec3 L = normalize(L1 + L2);
 
     vec3 H = normalize(L + Eye);
 

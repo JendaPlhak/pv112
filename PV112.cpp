@@ -10,6 +10,8 @@
 
 #include <GL/freeglut.h>
 
+
+
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -18,6 +20,9 @@
 #include "cube.inl"
 #include "sphere.inl"
 #include "teapot.inl"
+
+#define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
+#include "tiny_obj_loader.hpp"
 
 using namespace std;
 
@@ -566,22 +571,31 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
 {
     PV112Geometry geometry;
 
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> tex_coords;
-    if (!ParseOBJFile(file_name, vertices, normals, tex_coords))
-    {
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, file_name);
+
+    if (!err.empty()) { // `err` may contain warning message.
+        std::cerr << err << std::endl;
+    }
+    if (!ret) {
         return geometry;        // Return empty geometry, the error message was already printed
+    }
+    for (auto& vertex : attrib.vertices) {
+        vertex = 0.01 * vertex;
     }
 
     // Create buffers for vertex data
     glGenBuffers(3, geometry.VertexBuffers);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) * 3, vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, attrib.vertices.size() * sizeof(float) * 3, attrib.vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float) * 3, normals.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, attrib.normals.size() * sizeof(float) * 3, attrib.normals.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-    glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(float) * 2, tex_coords.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, attrib.texcoords.size() * sizeof(float) * 2, attrib.texcoords.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // No indices
@@ -615,7 +629,7 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     geometry.Mode = GL_TRIANGLES;
-    geometry.DrawArraysCount = vertices.size();
+    geometry.DrawArraysCount = attrib.vertices.size();
     geometry.DrawElementsCount = 0;
 
     return geometry;

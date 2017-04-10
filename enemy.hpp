@@ -30,7 +30,7 @@ public:
     virtual void got_hit(const uint32_t other_id) {
         if (m_last_contact != other_id) {
             ++m_hits;
-            if (m_hits >= m_textures.size()) {
+            if (m_hits >= m_textures.size() - 1) {
                 m_motion.active = true;
             }
         }

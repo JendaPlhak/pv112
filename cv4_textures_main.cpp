@@ -27,7 +27,8 @@ GLint material_diffuse_color_loc;
 GLint material_specular_color_loc;
 GLint material_shininess_loc;
 
-GLint light_position_loc;
+GLint light1_position_loc;
+GLint light2_position_loc;
 GLint light_diffuse_color_loc;
 GLint light_ambient_color_loc;
 GLint light_specular_color_loc;
@@ -118,7 +119,8 @@ void init()
     material_specular_color_loc = glGetUniformLocation(program, "material_specular_color");
     material_shininess_loc = glGetUniformLocation(program, "material_shininess");
 
-    light_position_loc = glGetUniformLocation(program, "light_position");
+    light1_position_loc = glGetUniformLocation(program, "light1_position");
+    light2_position_loc = glGetUniformLocation(program, "light2_position");
     light_ambient_color_loc = glGetUniformLocation(program, "light_ambient_color");
     light_diffuse_color_loc = glGetUniformLocation(program, "light_diffuse_color");
     light_specular_color_loc = glGetUniformLocation(program, "light_specular_color");
@@ -131,7 +133,7 @@ void init()
     dice_tex_loc = glGetUniformLocation(program, "dice_tex");
 
     std::vector<GLuint> dooms;
-    for (uint32_t i = 0; i < 2; ++i) {
+    for (uint32_t i = 0; i < 7; ++i) {
         std::string path("img/doom" + std::to_string(i) + ".png");
         auto tex = PV112::CreateAndLoadTexture(path.c_str());
         dooms.push_back(tex);
@@ -175,7 +177,7 @@ void init()
     }
 
     g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
-        glm::vec3(1,1,1), 0.4,  Motion(false)
+        glm::vec3(0,1,0), 0.6,  Motion(false)
     )));
 
     g_objects.push_back(std::move(std::make_unique<Ball>(
@@ -289,16 +291,18 @@ void render()
             glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
     // Light position, with a simple animation
-    glm::vec4 light_pos =
+    glm::vec4 light1_pos =
         glm::rotate(glm::mat4(1.0f), app_time_s, glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 2.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 light2_pos(0.0f, 0.0f, 3.0f, 1.0f);
 
     glUseProgram(program);
 
     glUniform3fv(eye_position_loc, 1, glm::value_ptr(my_camera.GetEyePosition()));
 
-    glUniform4fv(light_position_loc, 1, glm::value_ptr(light_pos));
+    glUniform4fv(light1_position_loc, 1, glm::value_ptr(light1_pos));
+    glUniform4fv(light2_position_loc, 1, glm::value_ptr(light2_pos));
     glUniform3f(light_ambient_color_loc, 0.3f, 0.3f, 0.3f);
     glUniform3f(light_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform3f(light_specular_color_loc, 1.0f, 1.0f, 1.0f);
@@ -316,7 +320,6 @@ void render()
                 continue;
             }
             if (obj_A->check_collision(*obj_B)) {
-                std::cout << "Collision!\n";
                 obj_A->bounce(*obj_B);
             }
         }
@@ -338,7 +341,7 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    if (app_time_s > 30) {
+    if (app_time_s > 10) {
         throw "AAAA";
     }
 }
