@@ -392,7 +392,7 @@ int main(int argc, char ** argv)
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
     // Set OpenGL Context parameters
-    glutInitContextVersion(1, 3);
+    glutInitContextVersion(3, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitContextFlags(GLUT_DEBUG);
 
