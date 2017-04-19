@@ -26,7 +26,8 @@ Cuboid::init() {
     int normal_loc    = glGetAttribLocation(m_program, "normal");
     int tex_coord_loc = glGetAttribLocation(m_program, "tex_coord");
     m_loc = glGetUniformLocation(m_program, "ball_tex");
-    m_cube = PV112::LoadOBJ("obj/sofa.obj", position_loc, normal_loc, tex_coord_loc);
+    m_cube = PV112::LoadOBJ("obj/WoodenBox02.obj", position_loc, normal_loc, tex_coord_loc);
+    // m_cube = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
 
     this->bind_cube_texture();
 }

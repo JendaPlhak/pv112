@@ -584,9 +584,12 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
     if (!ret) {
         return geometry;        // Return empty geometry, the error message was already printed
     }
-    for (auto& vertex : attrib.vertices) {
-        vertex = 0.01 * vertex;
+
+    assert(shapes.size() == 1);
+    for (const auto&x : shapes.at(0).mesh.num_face_vertices) {
+        assert(x == 3);
     }
+    const auto& indices = shapes.at(0).mesh.indices;
 
     // Create buffers for vertex data
     glGenBuffers(3, geometry.VertexBuffers);
@@ -598,8 +601,11 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
     glBufferData(GL_ARRAY_BUFFER, attrib.texcoords.size() * sizeof(float) * 2, attrib.texcoords.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    // No indices
-    geometry.IndexBuffer = 0;
+     // Create a buffer for indices
+    glGenBuffers(1, &geometry.IndexBuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     // Create a vertex array object for the geometry
     glGenVertexArrays(1, &geometry.VAO);
@@ -625,12 +631,16 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
         glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
     }
 
+     // Insert indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
+
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    geometry.Mode = GL_TRIANGLES;
-    geometry.DrawArraysCount = attrib.vertices.size();
-    geometry.DrawElementsCount = 0;
+    geometry.Mode = GL_TRIANGLE_STRIP;
+    geometry.DrawArraysCount = 0;
+    geometry.DrawElementsCount = indices.size();
 
     return geometry;
 }

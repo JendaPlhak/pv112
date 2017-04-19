@@ -12,8 +12,8 @@ using namespace std;
 using namespace PV112;
 
 // Current window size
-int win_width = 600;
-int win_height = 600;
+int win_width = 1900;
+int win_height = 1000;
 
 // Shader program and its uniforms
 GLuint program;
@@ -147,9 +147,9 @@ void init()
     }
 
 
-    // g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
-    //     glm::vec3(0, -2, 0), glm::vec3(20, 0.1, 20), Motion(false)
-    // )));
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+        glm::vec3(0, -2, 0), glm::vec3(3, 3, 3), Motion(false)
+    )));
     // g_objects.push_back(std::move(std::make_unique<Ball>(
     //     program, glm::vec3(0,0,0.), 1, Motion(false)
     // )));
@@ -176,21 +176,24 @@ void init()
         }
     }
 
-    g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
-        glm::vec3(0,1,0), 0.6,  Motion(false)
-    )));
+    // g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
+    //     glm::vec3(0,1,0), 0.6,  Motion(false)
+    // )));
 
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
-    )));
+    // g_objects.push_back(std::move(std::make_unique<Ball>(
+    //     program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
+    // )));
+    // g_objects.push_back(std::move(std::make_unique<Ball>(
+    //     program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
+    // )));
+    // g_objects.push_back(std::move(std::make_unique<Ball>(
+    //     program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
+    // )));
+    // g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+    //     glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion({-0.1, -1., 0}, 3.)
+    // )));
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
-        glm::vec3(0,0,0), glm::vec3(0.1, 0.5, 0.2), Motion({-0.1, -1., 0}, 3.)
+        glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion(false)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
         program, glm::vec3(1,1.,0.), 0.2, Motion({-1., -1.1, 0}, 3)
@@ -341,7 +344,7 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    if (app_time_s > 10) {
+    if (app_time_s > 60) {
         throw "AAAA";
     }
 }
@@ -376,8 +379,8 @@ void GLAPIENTRY simple_debug_callback(GLenum source, GLenum type, GLuint id,
 void timer(int)
 {
     prev_time_s = app_time_s;
-    app_time_s += 0.020f;
-    glutTimerFunc(20, timer, 0);
+    app_time_s += 0.050f;
+    glutTimerFunc(50, timer, 0);
     glutPostRedisplay();
 }
 
@@ -414,7 +417,7 @@ int main(int argc, char ** argv)
     glutDisplayFunc(render);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(key_pressed);
-    glutTimerFunc(20, timer, 0);
+    glutTimerFunc(50, timer, 0);
     glutMouseFunc(mouse_button_changed);
     glutMotionFunc(mouse_moved);
 
