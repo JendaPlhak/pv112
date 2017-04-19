@@ -19,12 +19,12 @@ public:
 
     void render(const float time) final override {
         const GLuint tex = m_textures.at(std::min(m_hits, m_textures.size() - 1));
-        glBindVertexArray(m_cube.VAO);
+        glBindVertexArray(m_geometry.VAO);
 
         glUniform1i(m_tex_loc, 0); // Choose proper texture unit
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, tex);
-        DrawGeometry(m_cube);
+        DrawGeometry(m_geometry);
     }
 
     virtual void got_hit(const uint32_t other_id) {

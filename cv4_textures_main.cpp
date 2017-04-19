@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "libs.hpp"
+#include "PV112.h"
 #include "helpers.hpp"
 #include "cuboid.hpp"
 #include "ball.hpp"
@@ -11,6 +12,7 @@
 using namespace std;
 using namespace PV112;
 
+constexpr uint SLEEP_MS = 15;
 // Current window size
 int win_width = 1900;
 int win_height = 1000;
@@ -146,8 +148,10 @@ void init()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
+    auto library_obj = PV112::LoadOBJ("obj/library.obj", position_loc, normal_loc, tex_coord_loc);
+    auto cube_obj = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
 
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
         glm::vec3(0, -2, 0), glm::vec3(3, 3, 3), Motion(false)
     )));
     // g_objects.push_back(std::move(std::make_unique<Ball>(
@@ -164,13 +168,13 @@ void init()
             glm::vec3 center(0);
             glm::vec3 widths(20);
             if (i == 2&& sign == 1) {
-                center[i] = sign * 5.1;
+                center[i] = sign * 8.1;
 
             } else {
-                center[i] = sign * 2.5;
+                center[i] = sign * 5.5;
             }
             widths[i] = 0.1;
-            g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+            g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
                 center, widths, Motion(false)
             )));
         }
@@ -192,7 +196,7 @@ void init()
     // g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
     //     glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion({-0.1, -1., 0}, 3.)
     // )));
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
         glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion(false)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
@@ -344,7 +348,7 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    if (app_time_s > 60) {
+    if (app_time_s > 50) {
         throw "AAAA";
     }
 }
@@ -379,8 +383,8 @@ void GLAPIENTRY simple_debug_callback(GLenum source, GLenum type, GLuint id,
 void timer(int)
 {
     prev_time_s = app_time_s;
-    app_time_s += 0.050f;
-    glutTimerFunc(50, timer, 0);
+    app_time_s += SLEEP_MS / 1000.f;
+    glutTimerFunc(SLEEP_MS, timer, 0);
     glutPostRedisplay();
 }
 
@@ -417,7 +421,7 @@ int main(int argc, char ** argv)
     glutDisplayFunc(render);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(key_pressed);
-    glutTimerFunc(50, timer, 0);
+    glutTimerFunc(SLEEP_MS, timer, 0);
     glutMouseFunc(mouse_button_changed);
     glutMotionFunc(mouse_moved);
 

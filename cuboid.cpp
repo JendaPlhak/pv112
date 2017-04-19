@@ -4,31 +4,34 @@
 #include "linalg.hpp"
 
 
-Cuboid::Cuboid(const GLuint program, const glm::vec3& center,
-    const glm::vec3& widths)
- : Object({center, widths / glm::vec3(2.)}),
-   m_program(program), m_center(center), m_halfw(widths / glm::vec3(2.))
+Cuboid::Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
+        const glm::vec3& center, const glm::vec3& scale)
+ : Object(init_aabb(geometry.aabb, center, scale)),
+   m_program(program), m_geometry(geometry), m_center(center), m_scale(scale),
+   m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
 {
     this->init();
 }
 
-Cuboid::Cuboid(const GLuint program, const glm::vec3& center,
-    const glm::vec3& widths, const Motion& motion)
- : Object({center, widths / glm::vec3(2.)}, motion),
-   m_program(program), m_center(center), m_halfw(widths / glm::vec3(2.))
+Cuboid::Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
+    const glm::vec3& center, const glm::vec3& scale, const Motion& motion)
+ : Object(init_aabb(geometry.aabb, center, scale), motion),
+   m_program(program), m_geometry(geometry), m_center(center), m_scale(scale),
+   m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
 {
     this->init();
+}
+
+AABB
+Cuboid::init_aabb(AABB aabb, const glm::vec3& center, const glm::vec3& scale)
+{
+    aabb.set_center(center);
+    aabb.apply_scale(scale);
+    return aabb;
 }
 
 void
 Cuboid::init() {
-    int position_loc  = glGetAttribLocation(m_program, "position");
-    int normal_loc    = glGetAttribLocation(m_program, "normal");
-    int tex_coord_loc = glGetAttribLocation(m_program, "tex_coord");
-    m_loc = glGetUniformLocation(m_program, "ball_tex");
-    m_cube = PV112::LoadOBJ("obj/WoodenBox02.obj", position_loc, normal_loc, tex_coord_loc);
-    // m_cube = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
-
     this->bind_cube_texture();
 }
 
@@ -55,18 +58,18 @@ Cuboid::update_geometry(const float time_delta) {
     }
 
     auto model_matrix = glm::translate(glm::mat4(1.f), m_center);
-    model_matrix = glm::scale(model_matrix, m_halfw);
+    model_matrix = glm::scale(model_matrix, m_scale);
     return model_matrix;
 }
 
 void
 Cuboid::render(const float time) {
-    glBindVertexArray(m_cube.VAO);
+    glBindVertexArray(m_geometry.VAO);
 
     glUniform1i(m_tex_loc, 0); // Choose proper texture unit
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_tex);
-    DrawGeometry(m_cube);
+    DrawGeometry(m_geometry);
 }
 
 float

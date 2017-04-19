@@ -1,5 +1,8 @@
 #pragma once
+#include <array>
 #include <cstdint>
+#include <limits>
+#include <vector>
 #include "libs.hpp"
 
 class Ball;
@@ -14,13 +17,40 @@ public:
     AABB(const glm::vec3 center, const glm::vec3 halfwidths)
      : m_center(center), m_halfwidths(halfwidths)
     { }
+    AABB(const std::vector<glm::vec3>& vertices) {
+        std::array<std::pair<float, float>, 3> boundaries;
+        boundaries.fill({
+            std::numeric_limits<float>::max(), std::numeric_limits<float>::min()
+        });
+        for (const auto& vertex: vertices) {
+            for (uint i = 0; i < 3; ++i) {
+                boundaries[i].first  = std::min(boundaries[i].first, vertex[i]);
+                boundaries[i].second = std::max(boundaries[i].second, vertex[i]);
+            }
+        }
+        for (uint i = 0; i < 3; ++i) {
+            m_center[i] = (boundaries[i].first + boundaries[i].second) / 2.;
+            m_halfwidths[i] = (boundaries[i].second - boundaries[i].first) / 2.;
+            std::cout << m_center[i] << " - " << m_halfwidths[i] << std::endl;
+        }
+    }
 
     void set_center(const glm::vec3& new_center) {
         m_center = new_center;
     }
+    void set_halfwidths(const glm::vec3& new_halfwidths) {
+        m_halfwidths = new_halfwidths;
+    }
     glm::vec3 get_center() const {
         return m_center;
     }
+    glm::vec3 get_halfwidths() const {
+        return m_halfwidths;
+    }
+    void apply_scale(const glm::vec3& scale) {
+        m_halfwidths *= scale;
+    }
+
 
     bool check_collision(const AABB& other) const {
         return std::abs(m_center.x - other.m_center.x) <= m_halfwidths.x + other.m_halfwidths.x

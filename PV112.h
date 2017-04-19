@@ -9,6 +9,8 @@
 #include <GL/glew.h>
 
 #include <glm/glm.hpp>
+#include "object.hpp"
+
 
 namespace PV112
 {
@@ -100,6 +102,7 @@ public:
     GLsizei DrawArraysCount;
     // Number of vertices to be drawn using glDrawElements
     GLsizei DrawElementsCount;
+    AABB aabb;
 };
 
 /// Deletes OpenGL objects of the geometry.
