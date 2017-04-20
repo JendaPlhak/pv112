@@ -148,7 +148,7 @@ void init()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    auto library_obj = PV112::LoadOBJ("obj/library.obj", position_loc, normal_loc, tex_coord_loc);
+    auto library_obj = PV112::LoadOBJ("obj/WoodenBox02.obj", position_loc, normal_loc, tex_coord_loc);
     auto cube_obj = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
 
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,

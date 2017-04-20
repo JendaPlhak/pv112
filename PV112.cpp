@@ -581,120 +581,46 @@ bool ParseOBJFile(const char *file_name, std::vector<glm::vec3> &out_vertices, s
     return true;
 }
 
-PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint normal_location, GLint tex_coord_location)
-{
-    PV112Geometry geometry;
-
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> tex_coords;
-    if (!ParseOBJFile(file_name, vertices, normals, tex_coords))
-    {
-        return geometry;        // Return empty geometry, the error message was already printed
-    }
-
-    { // Normalize object
-        AABB aabb(vertices);
-        auto widths = aabb.get_halfwidths();
-
-        auto shift = -aabb.get_center();
-        float scale = std::max(std::max(2*widths[0], 2*widths[1]), 2*widths[2]);
-
-        for (auto& vertex: vertices) {
-            vertex += shift;
-            vertex /= scale;
-         }
-        widths /= scale;
-        geometry.aabb = AABB({0, 0, 0}, widths);
-    }
-
-
-    // Create buffers for vertex data
-    glGenBuffers(3, geometry.VertexBuffers);
-    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) * 3, vertices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float) * 3, normals.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-    glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(float) * 2, tex_coords.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // No indices
-    geometry.IndexBuffer = 0;
-
-    // Create a vertex array object for the geometry
-    glGenVertexArrays(1, &geometry.VAO);
-
-    // Set the parameters of the geometry
-    glBindVertexArray(geometry.VAO);
-    if (position_location >= 0)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-        glEnableVertexAttribArray(position_location);
-        glVertexAttribPointer(position_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    }
-    if (normal_location >= 0)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-        glEnableVertexAttribArray(normal_location);
-        glVertexAttribPointer(normal_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    }
-    if (tex_coord_location >= 0)
-    {
-        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-        glEnableVertexAttribArray(tex_coord_location);
-        glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    }
-
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    geometry.Mode = GL_TRIANGLES;
-    geometry.DrawArraysCount = vertices.size();
-    geometry.DrawElementsCount = 0;
-
-    return geometry;
-}
-
 // PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint normal_location, GLint tex_coord_location)
 // {
 //     PV112Geometry geometry;
 
-//     tinyobj::attrib_t attrib;
-//     std::vector<tinyobj::shape_t> shapes;
-//     std::vector<tinyobj::material_t> materials;
-
-//     std::string err;
-//     bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, file_name);
-
-//     if (!err.empty()) { // `err` may contain warning message.
-//         std::cerr << err << std::endl;
-//     }
-//     if (!ret) {
+//     std::vector<glm::vec3> vertices;
+//     std::vector<glm::vec3> normals;
+//     std::vector<glm::vec2> tex_coords;
+//     if (!ParseOBJFile(file_name, vertices, normals, tex_coords))
+//     {
 //         return geometry;        // Return empty geometry, the error message was already printed
 //     }
 
-//     assert(shapes.size() == 1);
-//     for (const auto&x : shapes.at(0).mesh.num_face_vertices) {
-//         assert(x == 3);
+//     { // Normalize object
+//         AABB aabb(vertices);
+//         auto widths = aabb.get_halfwidths();
+
+//         auto shift = -aabb.get_center();
+//         float scale = std::max(std::max(2*widths[0], 2*widths[1]), 2*widths[2]);
+
+//         for (auto& vertex: vertices) {
+//             vertex += shift;
+//             vertex /= scale;
+//          }
+//         widths /= scale;
+//         geometry.aabb = AABB({0, 0, 0}, widths);
 //     }
-//     const auto& indices = shapes.at(0).mesh.indices;
+
 
 //     // Create buffers for vertex data
 //     glGenBuffers(3, geometry.VertexBuffers);
 //     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-//     glBufferData(GL_ARRAY_BUFFER, attrib.vertices.size() * sizeof(float) * 3, attrib.vertices.data(), GL_STATIC_DRAW);
+//     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) * 3, vertices.data(), GL_STATIC_DRAW);
 //     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-//     glBufferData(GL_ARRAY_BUFFER, attrib.normals.size() * sizeof(float) * 3, attrib.normals.data(), GL_STATIC_DRAW);
+//     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float) * 3, normals.data(), GL_STATIC_DRAW);
 //     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-//     glBufferData(GL_ARRAY_BUFFER, attrib.texcoords.size() * sizeof(float) * 2, attrib.texcoords.data(), GL_STATIC_DRAW);
+//     glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(float) * 2, tex_coords.data(), GL_STATIC_DRAW);
 //     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-//      // Create a buffer for indices
-//     glGenBuffers(1, &geometry.IndexBuffer);
-//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
-//     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+//     // No indices
+//     geometry.IndexBuffer = 0;
 
 //     // Create a vertex array object for the geometry
 //     glGenVertexArrays(1, &geometry.VAO);
@@ -720,19 +646,96 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
 //         glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
 //     }
 
-//      // Insert indices
-//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
-
 //     glBindVertexArray(0);
 //     glBindBuffer(GL_ARRAY_BUFFER, 0);
-//     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-//     geometry.Mode = GL_TRIANGLE_STRIP;
-//     geometry.DrawArraysCount = 0;
-//     geometry.DrawElementsCount = indices.size();
+//     geometry.Mode = GL_TRIANGLES;
+//     geometry.DrawArraysCount = vertices.size();
+//     geometry.DrawElementsCount = 0;
 
 //     return geometry;
 // }
+
+PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint normal_location, GLint tex_coord_location)
+{
+    PV112Geometry geometry;
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+
+    std::string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, file_name);
+
+    if (!err.empty()) { // `err` may contain warning message.
+        std::cerr << err << std::endl;
+    }
+    if (!ret) {
+        return geometry;        // Return empty geometry, the error message was already printed
+    }
+
+    assert(shapes.size() == 1);
+    for (const auto&x : shapes.at(0).mesh.num_face_vertices) {
+        assert(x == 3);
+    }
+    std::vector<unsigned int> indices;
+    for (const auto& index : shapes.at(0).mesh.indices) {
+        indices.push_back(index.vertex_index);
+    }
+
+    // Create buffers for vertex data
+    glGenBuffers(3, geometry.VertexBuffers);
+    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
+    glBufferData(GL_ARRAY_BUFFER, attrib.vertices.size() * sizeof(float), attrib.vertices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
+    glBufferData(GL_ARRAY_BUFFER, attrib.normals.size() * sizeof(float), attrib.normals.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
+    glBufferData(GL_ARRAY_BUFFER, attrib.texcoords.size() * sizeof(float), attrib.texcoords.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+     // Create a buffer for indices
+    glGenBuffers(1, &geometry.IndexBuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    // Create a vertex array object for the geometry
+    glGenVertexArrays(1, &geometry.VAO);
+
+    // Set the parameters of the geometry
+    glBindVertexArray(geometry.VAO);
+    if (position_location >= 0)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
+        glEnableVertexAttribArray(position_location);
+        glVertexAttribPointer(position_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+    if (normal_location >= 0)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
+        glEnableVertexAttribArray(normal_location);
+        glVertexAttribPointer(normal_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+    if (tex_coord_location >= 0)
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
+        glEnableVertexAttribArray(tex_coord_location);
+        glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
+     // Insert indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    geometry.Mode = GL_TRIANGLE_STRIP;
+    geometry.DrawArraysCount = 0;
+    geometry.DrawElementsCount = indices.size();
+
+    return geometry;
+}
 
 //-----------------------------------------
 //----    SIMPLE PV112 CAMERA CLASS    ----
