@@ -581,123 +581,46 @@ bool ParseOBJFile(const char *file_name, std::vector<glm::vec3> &out_vertices, s
     return true;
 }
 
-// PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint normal_location, GLint tex_coord_location)
-// {
-//     PV112Geometry geometry;
-
-//     std::vector<glm::vec3> vertices;
-//     std::vector<glm::vec3> normals;
-//     std::vector<glm::vec2> tex_coords;
-//     if (!ParseOBJFile(file_name, vertices, normals, tex_coords))
-//     {
-//         return geometry;        // Return empty geometry, the error message was already printed
-//     }
-
-//     { // Normalize object
-//         AABB aabb(vertices);
-//         auto widths = aabb.get_halfwidths();
-
-//         auto shift = -aabb.get_center();
-//         float scale = std::max(std::max(2*widths[0], 2*widths[1]), 2*widths[2]);
-
-//         for (auto& vertex: vertices) {
-//             vertex += shift;
-//             vertex /= scale;
-//          }
-//         widths /= scale;
-//         geometry.aabb = AABB({0, 0, 0}, widths);
-//     }
-
-
-//     // Create buffers for vertex data
-//     glGenBuffers(3, geometry.VertexBuffers);
-//     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-//     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) * 3, vertices.data(), GL_STATIC_DRAW);
-//     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-//     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float) * 3, normals.data(), GL_STATIC_DRAW);
-//     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-//     glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(float) * 2, tex_coords.data(), GL_STATIC_DRAW);
-//     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-//     // No indices
-//     geometry.IndexBuffer = 0;
-
-//     // Create a vertex array object for the geometry
-//     glGenVertexArrays(1, &geometry.VAO);
-
-//     // Set the parameters of the geometry
-//     glBindVertexArray(geometry.VAO);
-//     if (position_location >= 0)
-//     {
-//         glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-//         glEnableVertexAttribArray(position_location);
-//         glVertexAttribPointer(position_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//     }
-//     if (normal_location >= 0)
-//     {
-//         glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-//         glEnableVertexAttribArray(normal_location);
-//         glVertexAttribPointer(normal_location, 3, GL_FLOAT, GL_FALSE, 0, 0);
-//     }
-//     if (tex_coord_location >= 0)
-//     {
-//         glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-//         glEnableVertexAttribArray(tex_coord_location);
-//         glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
-//     }
-
-//     glBindVertexArray(0);
-//     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-//     geometry.Mode = GL_TRIANGLES;
-//     geometry.DrawArraysCount = vertices.size();
-//     geometry.DrawElementsCount = 0;
-
-//     return geometry;
-// }
-
 PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint normal_location, GLint tex_coord_location)
 {
     PV112Geometry geometry;
 
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-
-    std::string err;
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err, file_name);
-
-    if (!err.empty()) { // `err` may contain warning message.
-        std::cerr << err << std::endl;
-    }
-    if (!ret) {
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec2> tex_coords;
+    if (!ParseOBJFile(file_name, vertices, normals, tex_coords))
+    {
         return geometry;        // Return empty geometry, the error message was already printed
     }
 
-    assert(shapes.size() == 1);
-    for (const auto&x : shapes.at(0).mesh.num_face_vertices) {
-        assert(x == 3);
+    { // Normalize object
+        AABB aabb(vertices);
+        auto widths = aabb.get_halfwidths();
+
+        auto shift = -aabb.get_center();
+        float scale = std::max(std::max(2*widths[0], 2*widths[1]), 2*widths[2]);
+
+        for (auto& vertex: vertices) {
+            vertex += shift;
+            vertex /= scale;
+         }
+        widths /= scale;
+        geometry.aabb = AABB({0, 0, 0}, widths);
     }
-    std::vector<unsigned int> indices;
-    for (const auto& index : shapes.at(0).mesh.indices) {
-        indices.push_back(index.vertex_index);
-    }
+
 
     // Create buffers for vertex data
     glGenBuffers(3, geometry.VertexBuffers);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, attrib.vertices.size() * sizeof(float), attrib.vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float) * 3, vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, attrib.normals.size() * sizeof(float), attrib.normals.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float) * 3, normals.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, geometry.VertexBuffers[2]);
-    glBufferData(GL_ARRAY_BUFFER, attrib.texcoords.size() * sizeof(float), attrib.texcoords.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, tex_coords.size() * sizeof(float) * 2, tex_coords.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-     // Create a buffer for indices
-    glGenBuffers(1, &geometry.IndexBuffer);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    // No indices
+    geometry.IndexBuffer = 0;
 
     // Create a vertex array object for the geometry
     glGenVertexArrays(1, &geometry.VAO);
@@ -723,19 +646,16 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
         glVertexAttribPointer(tex_coord_location, 2, GL_FLOAT, GL_FALSE, 0, 0);
     }
 
-     // Insert indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, geometry.IndexBuffer);
-
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    geometry.Mode = GL_TRIANGLE_STRIP;
-    geometry.DrawArraysCount = 0;
-    geometry.DrawElementsCount = indices.size();
+    geometry.Mode = GL_TRIANGLES;
+    geometry.DrawArraysCount = vertices.size();
+    geometry.DrawElementsCount = 0;
 
     return geometry;
 }
+
 
 //-----------------------------------------
 //----    SIMPLE PV112 CAMERA CLASS    ----
@@ -743,78 +663,113 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
 
 const float PV112Camera::min_elevation = -1.5f;
 const float PV112Camera::max_elevation = 1.5f;
-const float PV112Camera::min_distance = 1.0f;
+const float PV112Camera::min_distance = 0.1f;
 const float PV112Camera::angle_sensitivity = 0.008f;
 const float PV112Camera::zoom_sensitivity = 0.003f;
 
-PV112Camera::PV112Camera()
-    : angle_direction(0.0f), angle_elevation(0.0f), distance(5.0f), last_x(0), last_y(0), is_rotating(false), is_zooming(false)
+PV112Camera::PV112Camera(const std::array<std::array<float, 2>, 3>& bounds)
+    : bounds(bounds), last_x(0), last_y(0)
 {
-    update_eye_pos();
-}
-
-void PV112Camera::update_eye_pos()
-{
-    eye_position.x = distance * cosf(angle_elevation) * -sinf(angle_direction);
-    eye_position.y = distance * sinf(angle_elevation);
-    eye_position.z = distance * cosf(angle_elevation) * cosf(angle_direction);
+    attr.position = glm::vec3({5, 2, 5});
+    this->clamp_position();
+    this->update_attributes();
 }
 
 void PV112Camera::OnMouseButtonChanged(int button, int state, int x, int y)
 {
-    // Left mouse button affects the angles
-    if (button == GLUT_LEFT_BUTTON)
-    {
-        if (state == GLUT_DOWN)
-        {
-            last_x = x;
-            last_y = y;
-            is_rotating = true;
-        }
-        else is_rotating = false;
-    }
-    // Right mouse button affects the zoom
-    if (button == GLUT_RIGHT_BUTTON)
-    {
-        if (state == GLUT_DOWN)
-        {
-            last_x = x;
-            last_y = y;
-            is_zooming = true;
-        }
-        else is_zooming = false;
-    }
+    // // Left mouse button affects the angles
+    // if (button == GLUT_LEFT_BUTTON)
+    // {
+    //     if (state == GLUT_DOWN)
+    //     {
+    //         last_x = x;
+    //         last_y = y;
+    //         is_rotating = true;
+    //     }
+    //     else is_rotating = false;
+    // }
+    // // Right mouse button affects the zoom
+    // if (button == GLUT_RIGHT_BUTTON)
+    // {
+    //     if (state == GLUT_DOWN)
+    //     {
+    //         last_x = x;
+    //         last_y = y;
+    //         is_zooming = true;
+    //     }
+    //     else is_zooming = false;
+    // }
 }
 
-void PV112Camera::OnMouseMoved(int x, int y)
+void PV112Camera::OnMouseMoved(int x, int y, float time_delta)
 {
-    float dx = float(x - last_x);
+
+    float dx = -float(x - last_x);
     float dy = float(y - last_y);
+    horizontal_angle += mouse_speed * time_delta * float(dx);
+    vertical_angle   += mouse_speed * time_delta * float(dy);
     last_x = x;
     last_y = y;
+    this->update_attributes();
 
-    if (is_rotating)
-    {
-        angle_direction += dx * angle_sensitivity;
-        angle_elevation += dy * angle_sensitivity;
-
-        // Clamp the results
-        if (angle_elevation > max_elevation)    angle_elevation = max_elevation;
-        if (angle_elevation < min_elevation)    angle_elevation = min_elevation;
-    }
-    if (is_zooming)
-    {
-        distance *= (1.0f + dy * zoom_sensitivity);
-
-        // Clamp the results
-        if (distance < min_distance)        distance = min_distance;
-    }
-    update_eye_pos();
 }
 
-glm::vec3 PV112Camera::GetEyePosition() const
+void PV112Camera::OnKeyPushed(int key, int x, int y, float time_delta) {
+    // Move forward
+    glm::vec3 shift;
+    if (key == GLUT_KEY_UP) {
+        shift = attr.direction * time_delta * speed;
+    }
+    // Move backward
+    if (key == GLUT_KEY_DOWN) {
+        shift = -attr.direction * time_delta * speed;
+    }
+    // Strafe right
+    if (key == GLUT_KEY_RIGHT) {
+        shift = -attr.right * time_delta * speed;
+    }
+    // Strafe left
+    if (key == GLUT_KEY_LEFT) {
+        shift = attr.right * time_delta * speed;
+    }
+    shift[1] = 0;
+    attr.position += shift;
+    this->clamp_position();
+}
+
+void PV112Camera::clamp_position() {
+    const float eps = 0.4;
+    for (unsigned i = 0; i < 3; ++i) {
+        float p = attr.position[i];
+
+        attr.position[i] = std::min(std::max(p, bounds[i][0] + eps), bounds[i][1] - eps);
+    }
+}
+
+void PV112Camera::update_attributes() {
+    // Direction : Spherical coordinates to Cartesian coordinates conversion
+    attr.direction = glm::vec3(
+        cos(vertical_angle) * sin(horizontal_angle),
+        sin(vertical_angle),
+        cos(vertical_angle) * cos(horizontal_angle)
+    );
+    // Right vector
+    attr.right = glm::vec3(
+        sin(horizontal_angle - 3.1415f/2.0f),
+        0,
+        cos(horizontal_angle - 3.1415f/2.0f)
+    );
+    attr.up = -glm::cross(attr.right, attr.direction);
+}
+
+
+glm::mat4 PV112Camera::get_view_matrix() const
 {
-    return eye_position;
+    return glm::lookAt(
+        attr.position,           // Camera is here
+        attr.position + attr.direction, // and looks here : at the same position, plus "direction"
+        attr.up                  // Head is up (set to 0,-1,0 to look upside-down)
+    );
 }
 
 }

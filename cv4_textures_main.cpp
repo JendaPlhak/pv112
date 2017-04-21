@@ -1,6 +1,8 @@
 // PV112 2017, lesson 4 - textures
 
 #include <memory>
+#include <time.h>
+#include <random>
 
 #include "libs.hpp"
 #include "PV112.h"
@@ -45,8 +47,13 @@ GLint dice_tex_loc;
 // Simple geometries that we will use in this lecture
 PV112Geometry my_cube;
 
+//Space boundaries
+using Bound = std::array<float, 2>;
+std::array<Bound, 3> bounds = {
+    Bound({-10, 10}), Bound({-2, 5}), Bound({-8, 8})
+};
 // Simple camera that allows us to look at the object from different views
-PV112Camera my_camera;
+PV112Camera my_camera(bounds);
 
 // OpenGL texture objects
 GLuint lenna_tex;
@@ -83,16 +90,37 @@ void key_pressed(unsigned char key, int mouseX, int mouseY)
     }
 }
 
+auto random_range = [](float LO, float HI) {
+    return LO + (HI-LO) * ((rand() % 100) / 100.f);
+};
+
 // Called when the user presses a mouse button
 void mouse_button_changed(int button, int state, int x, int y)
 {
-    my_camera.OnMouseButtonChanged(button, state, x, y);
+    if (button == GLUT_LEFT_BUTTON) {
+        if (state == GLUT_UP) {
+            const auto position = my_camera.get_position();
+            const float radius = random_range(0.1, 0.4);
+            const float speed = random_range(3., 8.);
+            auto dir = glm::normalize(my_camera.get_direction());
+            dir *= (radius + 0.6);
+
+            g_objects.push_back(std::move(std::make_unique<Ball>(program,
+                position + dir, radius, Motion(dir, speed)
+            )));
+        }
+    }
 }
 
 // Called when the user moves with the mouse (when some mouse button is pressed)
 void mouse_moved(int x, int y)
 {
-    my_camera.OnMouseMoved(x, y);
+    my_camera.OnMouseMoved(x, y, app_time_s - prev_time_s);
+}
+
+void SpecialInput(int key, int x, int y)
+{
+    my_camera.OnKeyPushed(key, x, y, app_time_s - prev_time_s);
 }
 
 // Initializes OpenGL stuff
@@ -148,8 +176,11 @@ void init()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    auto library_obj = PV112::LoadOBJ("obj/WoodenBox02.obj", position_loc, normal_loc, tex_coord_loc);
+    auto library_obj = PV112::LoadOBJ("obj/library.obj", position_loc, normal_loc, tex_coord_loc);
+    auto table_obj = PV112::LoadOBJ("obj/table.obj", position_loc, normal_loc, tex_coord_loc);
+    auto box_obj = PV112::LoadOBJ("obj/box.obj", position_loc, normal_loc, tex_coord_loc);
     auto cube_obj = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
+
 
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
         glm::vec3(0, -2, 0), glm::vec3(3, 3, 3), Motion(false)
@@ -157,47 +188,44 @@ void init()
     // g_objects.push_back(std::move(std::make_unique<Ball>(
     //     program, glm::vec3(0,0,0.), 1, Motion(false)
     // )));
-    // g_objects.push_back(std::move(std::make_unique<Ball>(
-    //     program, glm::vec3(0,1.5,0.), 0.3, Motion({0, 1., 0}, 2)
-    // )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(0,1.5,0.), 0.3, Motion({0, 1., 0}, 2)
+    )));
 
 
     // Walls
-    for (const auto sign : {1, -1}) {
+    for (const auto dir : {0, 1}) {
         for (uint32_t i = 0; i < 3; ++i) {
             glm::vec3 center(0);
             glm::vec3 widths(20);
-            if (i == 2&& sign == 1) {
-                center[i] = sign * 8.1;
+            const float thickness = 0.4;
 
-            } else {
-                center[i] = sign * 5.5;
-            }
-            widths[i] = 0.1;
+            center[i] = bounds[i][dir] + thickness * (dir ? 1 : -1);
+            widths[i] = thickness;
             g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
                 center, widths, Motion(false)
             )));
         }
     }
 
-    // g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
-    //     glm::vec3(0,1,0), 0.6,  Motion(false)
-    // )));
+    g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
+        glm::vec3(0,1,0), 0.6,  Motion(false)
+    )));
 
-    // g_objects.push_back(std::move(std::make_unique<Ball>(
-    //     program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
-    // )));
-    // g_objects.push_back(std::move(std::make_unique<Ball>(
-    //     program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
-    // )));
-    // g_objects.push_back(std::move(std::make_unique<Ball>(
-    //     program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
-    // )));
-    // g_objects.push_back(std::move(std::make_unique<Cuboid>(program,
-    //     glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion({-0.1, -1., 0}, 3.)
-    // )));
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
-        glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion(false)
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Ball>(
+        program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
+        glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion({-0.1, -1., 0}, 3.)
+    )));
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, box_obj,
+        glm::vec3(0,0,0), glm::vec3(1, 0.5, 0.2), Motion(false)
     )));
     g_objects.push_back(std::move(std::make_unique<Ball>(
         program, glm::vec3(1,1.,0.), 0.2, Motion({-1., -1.1, 0}, 3)
@@ -294,8 +322,7 @@ void render()
 
     projection_matrix = glm::perspective(glm::radians(45.0f),
             float(win_width) / float(win_height), 0.1f, 100.0f);
-    view_matrix = glm::lookAt(my_camera.GetEyePosition(),
-            glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    view_matrix = my_camera.get_view_matrix();
 
     // Light position, with a simple animation
     glm::vec4 light1_pos =
@@ -306,7 +333,7 @@ void render()
 
     glUseProgram(program);
 
-    glUniform3fv(eye_position_loc, 1, glm::value_ptr(my_camera.GetEyePosition()));
+    glUniform3fv(eye_position_loc, 1, glm::value_ptr(my_camera.get_position()));
 
     glUniform4fv(light1_position_loc, 1, glm::value_ptr(light1_pos));
     glUniform4fv(light2_position_loc, 1, glm::value_ptr(light2_pos));
@@ -348,9 +375,9 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    if (app_time_s > 50) {
-        throw "AAAA";
-    }
+    // if (app_time_s > 50) {
+    //     throw "AAAA";
+    // }
 }
 
 // Called when the window changes its size
@@ -390,6 +417,7 @@ void timer(int)
 
 int main(int argc, char ** argv)
 {
+    srand(time(NULL));
     // Initialize GLUT
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
@@ -423,7 +451,8 @@ int main(int argc, char ** argv)
     glutKeyboardFunc(key_pressed);
     glutTimerFunc(SLEEP_MS, timer, 0);
     glutMouseFunc(mouse_button_changed);
-    glutMotionFunc(mouse_moved);
+    glutPassiveMotionFunc(mouse_moved);
+    glutSpecialFunc(SpecialInput);
 
     // Run the main loop
     glutMainLoop();

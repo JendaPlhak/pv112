@@ -171,7 +171,16 @@ PV112Geometry LoadOBJ(const char *file_name, GLint position_location, GLint norm
 /// Use right mouse button to zoom in and zoom out.
 class PV112Camera
 {
+public:
+    struct Attributes {
+        glm::vec3 position;
+        glm::vec3 direction;
+        glm::vec3 right;
+        glm::vec3 up;
+    };
 private:
+    static constexpr float speed = 6.0f; // 3 units / second
+    static constexpr float mouse_speed = 0.5f;
     /// Constants that defines the behaviour of the camera
     ///		- Minimum elevation in radians
     static const float min_elevation;
@@ -184,44 +193,37 @@ private:
     ///		- Sensitivity of the mouse when changing zoom
     static const float zoom_sensitivity;
 
-    /// angle_direction is an angle in which determines into which direction in xz plane I look.
-    ///		- 0 degrees .. I look in -z direction
-    ///		- 90 degrees .. I look in -x direction
-    ///		- 180 degrees .. I look in +z direction
-    ///		- 270 degrees .. I look in +x direction
-    float angle_direction;
-
-    /// angle_direction is an angle in which determines from which "height" I look.
-    ///		- positive elevation .. I look from above the xz plane
-    ///		- negative elevation .. I look from below the xz plane
-    float angle_elevation;
-
-    /// Distance from (0,0,0), the point at which I look
-    float distance;
-
-    /// Final position of the eye in world space coordinates, for LookAt or shaders
-    glm::vec3 eye_position;
+    const std::array<std::array<float, 2>, 3> bounds;
+    float horizontal_angle = 3.14f;
+    // vertical angle : 0, look at the horizon
+    float vertical_angle = 0.0f;
 
     /// Last X and Y coordinates of the mouse cursor
     int last_x, last_y;
 
-    /// True or false if moused buttons are pressed and the user rotates/zooms the camera
-    bool is_rotating, is_zooming;
+    Attributes attr;
 
     /// Recomputes 'eye_position' from 'angle_direction', 'angle_elevation', and 'distance'
-    void update_eye_pos();
-
+    void update_attributes();
+    void clamp_position();
 public:
-    PV112Camera();
+    PV112Camera(const std::array<std::array<float, 2>, 3>& bounds);
 
     /// Call when the user presses or releases a mouse button (see glutMouseFunc)
     void OnMouseButtonChanged(int button, int state, int x, int y);
 
     /// Call when the user moves with the mouse cursor (see glutMotionFunc)
-    void OnMouseMoved(int x, int y);
+    void OnMouseMoved(int x, int y, float time_delta);
+    void OnKeyPushed(int key, int x, int y, float time_delta);
 
-    /// Returns the position of the eye in world space coordinates
-    glm::vec3 GetEyePosition() const;
+    /// Returns view matrix
+    glm::mat4 get_view_matrix() const;
+    glm::vec3 get_position() const {
+        return attr.position;
+    }
+    glm::vec3 get_direction() const {
+        return attr.direction;
+    }
 };
 
 }
