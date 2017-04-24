@@ -26,10 +26,9 @@ uniform sampler2D dice_tex;
 
 void main()
 {
-    vec3 dice_color = texture(dice_tex, VS_tex_coord).rgb;
 	vec3 wood_color = texture(wood_tex, VS_tex_coord).rgb;
 	vec3 rock_color = texture(rocks_tex, VS_tex_coord).rgb;
-    vec3 tex_color = wood_color;
+    vec3 tex_color = texture(my_tex, VS_tex_coord).rgb;
 
     vec3 N = normalize(VS_normal_ws);
     vec3 Eye = normalize(eye_position - VS_position_ws);

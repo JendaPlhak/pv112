@@ -670,7 +670,7 @@ const float PV112Camera::zoom_sensitivity = 0.003f;
 PV112Camera::PV112Camera(const std::array<std::array<float, 2>, 3>& bounds)
     : bounds(bounds), last_x(0), last_y(0)
 {
-    attr.position = glm::vec3({5, 2, 5});
+    attr.position = glm::vec3({11, 2, 2.5});
     this->clamp_position();
     this->update_attributes();
 }

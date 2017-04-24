@@ -35,4 +35,7 @@ public:
             }
         }
     }
+    virtual float get_max_scale() const {
+        return 1.;
+    }
 };

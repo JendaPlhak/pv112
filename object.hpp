@@ -31,7 +31,6 @@ public:
         for (uint i = 0; i < 3; ++i) {
             m_center[i] = (boundaries[i].first + boundaries[i].second) / 2.;
             m_halfwidths[i] = (boundaries[i].second - boundaries[i].first) / 2.;
-            std::cout << m_center[i] << " - " << m_halfwidths[i] << std::endl;
         }
     }
 
@@ -61,7 +60,7 @@ public:
 
 struct Motion {
     Motion(const glm::vec3& dir, const float speed)
-     : v(speed * glm::normalize(dir)), bounciness(1), active(true)
+     : v(speed * glm::normalize(dir)), bounciness(1.), active(true)
     {}
     Motion(const glm::vec3& dir, const float speed, const float bounciness)
      : v(speed * glm::normalize(dir)), bounciness(bounciness), active(true)
@@ -104,6 +103,12 @@ public:
     }
     const bool is_active() const {
         return m_motion.active;
+    }
+
+    virtual float get_max_scale() const {
+        auto widths = m_aabb.get_halfwidths();
+        widths *= 2.;
+        return std::max(std::max(widths[0], widths[1]), widths[2]);
     }
     virtual glm::mat4 update_geometry(const float time_delta) = 0;
     virtual void render(const float time) = 0;

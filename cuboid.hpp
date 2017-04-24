@@ -18,9 +18,10 @@ protected:
 public:
     Cuboid() = default;
     Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
-        const glm::vec3& center, const glm::vec3& scale);
+        const GLuint tex, const glm::vec3& center, const glm::vec3& scale);
     Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
-        const glm::vec3& center, const glm::vec3& scale, const Motion& motion);
+        const GLuint tex, const glm::vec3& center, const glm::vec3& scale,
+        const Motion& motion);
 
     virtual glm::mat4 update_geometry(const float time) final override;
     virtual void render(const float time_delta) override;
@@ -46,12 +47,13 @@ private:
 class Cube : public Cuboid {
 public:
     Cube() = default;
-    Cube(const GLuint program, const glm::vec3& center, const float scale)
-     : Cuboid(program, get_cube_geometry(program), center, glm::vec3(scale))
+    Cube(const GLuint program, const GLuint tex, const glm::vec3& center,
+        const float scale)
+     : Cuboid(program, get_cube_geometry(program), tex, center, glm::vec3(scale))
     {}
-    Cube(const GLuint program, const glm::vec3& center, const float scale,
-        const Motion& motion)
-     : Cuboid(program, get_cube_geometry(program), center, glm::vec3(scale),
+    Cube(const GLuint program, const GLuint tex, const glm::vec3& center,
+        const float scale, const Motion& motion)
+     : Cuboid(program, get_cube_geometry(program), tex, center, glm::vec3(scale),
         motion)
     {}
 

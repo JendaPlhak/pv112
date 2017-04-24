@@ -5,19 +5,20 @@
 
 
 Cuboid::Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
-        const glm::vec3& center, const glm::vec3& scale)
+        const GLuint tex, const glm::vec3& center, const glm::vec3& scale)
  : Object(init_aabb(geometry.aabb, center, scale)),
-   m_program(program), m_geometry(geometry), m_center(center), m_scale(scale),
-   m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
+   m_program(program), m_geometry(geometry), m_tex(tex), m_center(center),
+   m_scale(scale), m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
 {
     this->init();
 }
 
 Cuboid::Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
-    const glm::vec3& center, const glm::vec3& scale, const Motion& motion)
+        const GLuint tex, const glm::vec3& center, const glm::vec3& scale,
+        const Motion& motion)
  : Object(init_aabb(geometry.aabb, center, scale), motion),
-   m_program(program), m_geometry(geometry), m_center(center), m_scale(scale),
-   m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
+   m_program(program), m_geometry(geometry), m_tex(tex), m_center(center),
+   m_scale(scale), m_halfw(init_aabb(geometry.aabb, center, scale).get_halfwidths())
 {
     this->init();
 }
@@ -37,16 +38,7 @@ Cuboid::init() {
 
 void
 Cuboid::bind_cube_texture() {
-    m_tex_loc = glGetUniformLocation(m_program, "ball_tex");
-
-    m_tex = PV112::CreateAndLoadTexture("img/wood.jpg");
-    glBindTexture(GL_TEXTURE_2D, m_tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    m_tex_loc = glGetUniformLocation(m_program, "my_tex");
 }
 
 glm::mat4

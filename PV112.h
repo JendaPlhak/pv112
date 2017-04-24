@@ -179,7 +179,7 @@ public:
         glm::vec3 up;
     };
 private:
-    static constexpr float speed = 6.0f; // 3 units / second
+    static constexpr float speed = 10.0f; // 3 units / second
     static constexpr float mouse_speed = 0.5f;
     /// Constants that defines the behaviour of the camera
     ///		- Minimum elevation in radians

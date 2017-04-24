@@ -54,7 +54,7 @@ public:
     void bind_ball_texture() {
         m_tex_loc = glGetUniformLocation(m_program, "ball_tex");
 
-        m_tex = PV112::CreateAndLoadTexture("img/basketball-texture.jpg");
+        m_tex = PV112::CreateAndLoadTexture("img/metal.jpg");
         glBindTexture(GL_TEXTURE_2D, m_tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);

@@ -25,6 +25,7 @@ GLuint program;
 GLint model_matrix_loc;
 GLint PVM_matrix_loc;
 GLint normal_matrix_loc;
+GLint tex_scale_loc;
 
 GLint material_ambient_color_loc;
 GLint material_diffuse_color_loc;
@@ -50,7 +51,7 @@ PV112Geometry my_cube;
 //Space boundaries
 using Bound = std::array<float, 2>;
 std::array<Bound, 3> bounds = {
-    Bound({-10, 10}), Bound({-2, 5}), Bound({-8, 8})
+    Bound({-15, 15}), Bound({0, 7}), Bound({-15, 15})
 };
 // Simple camera that allows us to look at the object from different views
 PV112Camera my_camera(bounds);
@@ -97,14 +98,25 @@ auto random_range = [](float LO, float HI) {
 // Called when the user presses a mouse button
 void mouse_button_changed(int button, int state, int x, int y)
 {
+    const auto position = my_camera.get_position();
+
     if (button == GLUT_LEFT_BUTTON) {
         if (state == GLUT_UP) {
-            const auto position = my_camera.get_position();
-            const float radius = random_range(0.1, 0.4);
-            const float speed = random_range(3., 8.);
+            const float radius = random_range(0.1, 0.3);
+            const float speed = random_range(5., 17.);
             auto dir = glm::normalize(my_camera.get_direction());
             dir *= (radius + 0.6);
 
+            g_objects.push_back(std::move(std::make_unique<Ball>(program,
+                position + dir, radius, Motion(dir, speed)
+            )));
+        }
+    } else if (button == GLUT_RIGHT_BUTTON) {
+        if (state == GLUT_UP) {
+            const float radius = random_range(0.3, 0.5);
+            const float speed = random_range(3., 9.);
+            auto dir = glm::normalize(my_camera.get_direction());
+            dir *= (radius + 0.6);
             g_objects.push_back(std::move(std::make_unique<Ball>(program,
                 position + dir, radius, Motion(dir, speed)
             )));
@@ -121,6 +133,17 @@ void mouse_moved(int x, int y)
 void SpecialInput(int key, int x, int y)
 {
     my_camera.OnKeyPushed(key, x, y, app_time_s - prev_time_s);
+}
+
+void bind_tex(const GLuint tex)
+{
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 // Initializes OpenGL stuff
@@ -143,6 +166,7 @@ void init()
     model_matrix_loc = glGetUniformLocation(program, "model_matrix");
     PVM_matrix_loc = glGetUniformLocation(program, "PVM_matrix");
     normal_matrix_loc = glGetUniformLocation(program, "normal_matrix");
+    tex_scale_loc = glGetUniformLocation(program, "tex_scale");
 
     material_ambient_color_loc = glGetUniformLocation(program, "material_ambient_color");
     material_diffuse_color_loc = glGetUniformLocation(program, "material_diffuse_color");
@@ -167,30 +191,19 @@ void init()
         std::string path("img/doom" + std::to_string(i) + ".png");
         auto tex = PV112::CreateAndLoadTexture(path.c_str());
         dooms.push_back(tex);
-        glBindTexture(GL_TEXTURE_2D, tex);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, 0);
+        bind_tex(tex);
     }
+
+    auto wood_tex = PV112::CreateAndLoadTexture("img/wood.jpg");
+    auto stone_tex = PV112::CreateAndLoadTexture("img/rocks.jpg");
+    bind_tex(wood_tex);
+    bind_tex(stone_tex);
+
 
     auto library_obj = PV112::LoadOBJ("obj/library.obj", position_loc, normal_loc, tex_coord_loc);
     auto table_obj = PV112::LoadOBJ("obj/table.obj", position_loc, normal_loc, tex_coord_loc);
     auto box_obj = PV112::LoadOBJ("obj/box.obj", position_loc, normal_loc, tex_coord_loc);
     auto cube_obj = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
-
-
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        glm::vec3(0, -2, 0), glm::vec3(3, 3, 3), Motion(false)
-    )));
-    // g_objects.push_back(std::move(std::make_unique<Ball>(
-    //     program, glm::vec3(0,0,0.), 1, Motion(false)
-    // )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,1.5,0.), 0.3, Motion({0, 1., 0}, 2)
-    )));
 
 
     // Walls
@@ -203,116 +216,77 @@ void init()
             center[i] = bounds[i][dir] + thickness * (dir ? 1 : -1);
             widths[i] = thickness;
             g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
-                center, widths, Motion(false)
+                stone_tex, center, widths, Motion(false)
             )));
         }
     }
 
-    g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program,
-        glm::vec3(0,1,0), 0.6,  Motion(false)
-    )));
 
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(-1,0,0.), 0.4, Motion({1., 0.0, 0}, 7.)
+    // Table in the middle
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, table_obj,
+        wood_tex, glm::vec3(0, 0, 0), glm::vec3(4.5, 4, 4.5), Motion(false)
     )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(1,0.,0.), 0.3, Motion({-1., 0.0, 0}, 5.)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,1.,0.), 0.4, Motion({-0.33, 0.754, -1.2}, 5.)
-    )));
+    // Balls on the table
+    {
+        std::vector<std::array<int, 2>> p = {
+            {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
+        };
+        for (unsigned i = 0; i < 4; ++i) {
+            g_objects.push_back(std::move(std::make_unique<Ball>(program,
+                glm::vec3(1*p[i][0], 2. + i, 1*p[i][1]), 0.25,
+                Motion({0, 1, 0}, 3.)
+            )));
+        }
+    }
+    // Boxes
+    auto create_boxes = [&](const unsigned D) {
+        auto one = []() {
+            return rand() % 2 == 0 ? 1 : -1;
+        };
+        const int width = bounds[D][1] - bounds[D][0];
+        const float spread = 3.;
+        const int count = width / spread;
+
+        glm::vec3 dir(0, 1, 0);
+        for (unsigned i = 0; i < count; ++i) {
+            glm::vec3 position(0, i/2. + 2, 0);
+            position[D] = bounds[0][0] + i*spread;
+            dir[D] = one();
+
+            g_objects.push_back(std::move(std::make_unique<Cuboid>(program, box_obj,
+                wood_tex, position, glm::vec3(0.5, 0.75, 0.4), Motion(dir, 3.)
+            )));
+        }
+    };
+    create_boxes(0);
+    create_boxes(2);
+
+    // Make some libs
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        glm::vec3(0,0,0), glm::vec3(0.01, 0.05, 0.02), Motion({-0.1, -1., 0}, 3.)
+        wood_tex, glm::vec3(-11, 0, -11), glm::vec3(3, 3, 3), Motion(false)
     )));
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, box_obj,
-        glm::vec3(0,0,0), glm::vec3(1, 0.5, 0.2), Motion(false)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(1,1.,0.), 0.2, Motion({-1., -1.1, 0}, 3)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(
-        program, glm::vec3(0,0.,1.), 0.2, Motion({0., 0.1, 0.0}, 3.5)
+     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
+        wood_tex, glm::vec3(11, 0, -11), glm::vec3(3, 3, 3), Motion(false)
     )));
 
-    g_objects.push_back(std::move(std::make_unique<Ball>(program,
-        glm::vec3(-2,0,0), 0.4, Motion({1., 0, 0}, 4.)
-    )));
-    g_objects.push_back(std::move(std::make_unique<Ball>(program,
-        glm::vec3(0,0,2), 0.4, Motion({1., 0, 0}, 5.)
-    )));
-
-
-    // Lenna texture
-
-    // lenna_tex = CreateAndLoadTexture(MAYBEWIDE("Lenna.png"));
-    // glBindTexture(GL_TEXTURE_2D, lenna_tex);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    // glm::vec4 border_color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(border_color));
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
-    // glGenerateMipmap(GL_TEXTURE_2D);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // Rocks texture
-
-    // rocks_tex = CreateAndLoadTexture(MAYBEWIDE("rocks.jpg"));
-    // glBindTexture(GL_TEXTURE_2D, rocks_tex);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glGenerateMipmap(GL_TEXTURE_2D);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // // Wood texture
-
-    // wood_tex = CreateAndLoadTexture(MAYBEWIDE("wood.jpg"));
-    // glBindTexture(GL_TEXTURE_2D, wood_tex);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glGenerateMipmap(GL_TEXTURE_2D);
-    // glBindTexture(GL_TEXTURE_2D, 0);
-
-
-    // Dice textures
-
-    // dice_tex[0] = CreateAndLoadTexture(MAYBEWIDE("dice1.png"));
-    // dice_tex[1] = CreateAndLoadTexture(MAYBEWIDE("dice2.png"));
-    // dice_tex[2] = CreateAndLoadTexture(MAYBEWIDE("dice3.png"));
-    // dice_tex[3] = CreateAndLoadTexture(MAYBEWIDE("dice4.png"));
-    // dice_tex[4] = CreateAndLoadTexture(MAYBEWIDE("dice5.png"));
-    // dice_tex[5] = CreateAndLoadTexture(MAYBEWIDE("dice6.png"));
-    // for (int i = 0; i < 6; i++)
-    // {
-    //     glBindTexture(GL_TEXTURE_2D, dice_tex[i]);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //     glGenerateMipmap(GL_TEXTURE_2D);
-    // }
-    // glBindTexture(GL_TEXTURE_2D, 0);
-
-
-
-    // Example of how to load a cube texture
-    /*
-    GLuint example_cube_tex =
-    CreateAndLoadTextureCube(MAYBEWIDE("skybox_px.png"),
-    MAYBEWIDE("skybox_nx.png"), MAYBEWIDE("skybox_py.png"),
-    MAYBEWIDE("skybox_ny.png"), MAYBEWIDE("skybox_pz.png"),
-    MAYBEWIDE("skybox_nz.png"));
-    */
+    // Create enemies
+    {
+        std::vector<std::array<int, 2>> p = {
+            {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
+        };
+        for (unsigned i = 0; i < 5; ++i) {
+            for (unsigned j = 0; j < 4; ++j) {
+                float s = 2.5 * (i + 1);
+                g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program, 0,
+                    glm::vec3(s*p[j][0], i + 2, s*p[j][1]), 1. / (i + 1),
+                    Motion(false)
+                )));
+            }
+        }
+    }
 }
 
-// Called when the window needs to be rerendered
+// Called when the window needs to be rendered
 void render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -329,7 +303,7 @@ void render()
         glm::rotate(glm::mat4(1.0f), app_time_s, glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 2.0f, 0.0f)) *
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 light2_pos(0.0f, 0.0f, 3.0f, 1.0f);
+    glm::vec4 light2_pos(3.0f, 1.0f, 3.0f, 1.0f);
 
     glUseProgram(program);
 
@@ -360,6 +334,7 @@ void render()
     }
 
     for (const auto& obj : g_objects) {
+        glUniform1f(tex_scale_loc, obj->get_max_scale());
         model_matrix = obj->update_geometry(app_time_s - prev_time_s);
 
         PVM_matrix = projection_matrix * view_matrix * model_matrix;
@@ -375,9 +350,6 @@ void render()
     glUseProgram(0);
 
     glutSwapBuffers();
-    // if (app_time_s > 50) {
-    //     throw "AAAA";
-    // }
 }
 
 // Called when the window changes its size
