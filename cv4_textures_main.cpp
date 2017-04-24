@@ -263,10 +263,10 @@ void init()
 
     // Make some libs
     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        wood_tex, glm::vec3(-11, 0, -11), glm::vec3(3, 3, 3), Motion(false)
+        wood_tex, glm::vec3(-11, 1.5, -11), glm::vec3(3, 3, 3), Motion(false)
     )));
      g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        wood_tex, glm::vec3(11, 0, -11), glm::vec3(3, 3, 3), Motion(false)
+        wood_tex, glm::vec3(11, 1.5, -11), glm::vec3(3, 3, 3), Motion(false)
     )));
 
     // Create enemies
@@ -429,6 +429,7 @@ int main(int argc, char ** argv)
     glutMouseFunc(mouse_button_changed);
     glutPassiveMotionFunc(mouse_moved);
     glutSpecialFunc(SpecialInput);
+    glutFullScreenToggle();
 
     // Run the main loop
     glutMainLoop();
