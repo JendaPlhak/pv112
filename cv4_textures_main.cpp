@@ -301,9 +301,13 @@ void render()
     // Light position, with a simple animation
     glm::vec4 light1_pos =
         glm::rotate(glm::mat4(1.0f), app_time_s, glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 2.0f, 0.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 6.0f, -5.0f)) *
         glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 light2_pos(3.0f, 1.0f, 3.0f, 1.0f);
+    glm::vec4 light2_pos =
+        glm::rotate(glm::mat4(1.0f), -1.76794f*app_time_s + 2.11f,
+            glm::vec3(0.0f, 1.0f, 0.0f)) *
+        glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 6.0f, 5.0f)) *
+        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
     glUseProgram(program);
 
