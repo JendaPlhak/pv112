@@ -53,6 +53,7 @@ using Bound = std::array<float, 2>;
 std::array<Bound, 3> bounds = {
     Bound({-15, 15}), Bound({0, 7}), Bound({-15, 15})
 };
+std::array<bool, 4> arrows_pressed = {false, false, false, false};
 // Simple camera that allows us to look at the object from different views
 PV112Camera my_camera(bounds);
 
@@ -130,9 +131,42 @@ void mouse_moved(int x, int y)
     my_camera.OnMouseMoved(x, y, app_time_s - prev_time_s);
 }
 
-void SpecialInput(int key, int x, int y)
+void SpecialInputPressed(int key, int x, int y)
 {
-    my_camera.OnKeyPushed(key, x, y, app_time_s - prev_time_s);
+    if (key == GLUT_KEY_UP) {
+        arrows_pressed.at(0) = true;
+    }
+    // Move backward
+    if (key == GLUT_KEY_DOWN) {
+        arrows_pressed.at(1) = true;
+    }
+    // Strafe right
+    if (key == GLUT_KEY_RIGHT) {
+        arrows_pressed.at(2) = true;
+    }
+    // Strafe left
+    if (key == GLUT_KEY_LEFT) {
+        arrows_pressed.at(3) = true;
+    }
+}
+
+void SpecialInputReleased(int key, int x, int y)
+{
+    if (key == GLUT_KEY_UP) {
+        arrows_pressed.at(0) = false;
+    }
+    // Move backward
+    if (key == GLUT_KEY_DOWN) {
+        arrows_pressed.at(1) = false;
+    }
+    // Strafe right
+    if (key == GLUT_KEY_RIGHT) {
+        arrows_pressed.at(2) = false;
+    }
+    // Strafe left
+    if (key == GLUT_KEY_LEFT) {
+        arrows_pressed.at(3) = false;
+    }
 }
 
 void bind_tex(const GLuint tex)
@@ -289,6 +323,8 @@ void init()
 // Called when the window needs to be rendered
 void render()
 {
+    my_camera.ProcessArrowKeys(arrows_pressed, app_time_s - prev_time_s);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 projection_matrix, view_matrix, model_matrix, PVM_matrix;
@@ -428,7 +464,8 @@ int main(int argc, char ** argv)
     glutTimerFunc(SLEEP_MS, timer, 0);
     glutMouseFunc(mouse_button_changed);
     glutPassiveMotionFunc(mouse_moved);
-    glutSpecialFunc(SpecialInput);
+    glutSpecialFunc(SpecialInputPressed);
+    glutSpecialUpFunc(SpecialInputReleased);
     glutFullScreenToggle();
 
     // Run the main loop

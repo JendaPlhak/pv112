@@ -673,6 +673,7 @@ PV112Camera::PV112Camera(const std::array<std::array<float, 2>, 3>& bounds)
     attr.position = glm::vec3({11, 2, 2.5});
     this->clamp_position();
     this->update_attributes();
+    arrows_pressed.fill(false);
 }
 
 void PV112Camera::OnMouseButtonChanged(int button, int state, int x, int y)
@@ -714,27 +715,30 @@ void PV112Camera::OnMouseMoved(int x, int y, float time_delta)
 
 }
 
-void PV112Camera::OnKeyPushed(int key, int x, int y, float time_delta) {
+void PV112Camera::ProcessArrowKeys(std::array<bool, 4> keys, float time_delta) {
+    glm::vec3 dir(0);
     // Move forward
-    glm::vec3 shift;
-    if (key == GLUT_KEY_UP) {
-        shift = attr.direction * time_delta * speed;
+    if (keys.at(0)) {
+        dir += glm::normalize(attr.direction);
     }
     // Move backward
-    if (key == GLUT_KEY_DOWN) {
-        shift = -attr.direction * time_delta * speed;
+    if (keys.at(1)) {
+        dir -= glm::normalize(attr.direction);
     }
     // Strafe right
-    if (key == GLUT_KEY_RIGHT) {
-        shift = -attr.right * time_delta * speed;
+    if (keys.at(2)) {
+        dir -= glm::normalize(attr.right);
     }
     // Strafe left
-    if (key == GLUT_KEY_LEFT) {
-        shift = attr.right * time_delta * speed;
+    if (keys.at(3)) {
+        dir += glm::normalize(attr.right);
     }
-    shift[1] = 0;
-    attr.position += shift;
-    this->clamp_position();
+
+    dir[1] = 0;
+    if (glm::any(glm::greaterThanEqual(glm::abs(dir), glm::vec3(0.0001)))) {
+        attr.position += glm::normalize(dir) * time_delta * speed;
+        this->clamp_position();
+    }
 }
 
 void PV112Camera::clamp_position() {

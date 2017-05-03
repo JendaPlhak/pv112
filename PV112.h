@@ -201,6 +201,8 @@ private:
     /// Last X and Y coordinates of the mouse cursor
     int last_x, last_y;
 
+    std::array<bool, 4> arrows_pressed;
+
     Attributes attr;
 
     /// Recomputes 'eye_position' from 'angle_direction', 'angle_elevation', and 'distance'
@@ -214,7 +216,7 @@ public:
 
     /// Call when the user moves with the mouse cursor (see glutMotionFunc)
     void OnMouseMoved(int x, int y, float time_delta);
-    void OnKeyPushed(int key, int x, int y, float time_delta);
+    void ProcessArrowKeys(std::array<bool, 4> keys, float time_delta);
 
     /// Returns view matrix
     glm::mat4 get_view_matrix() const;
