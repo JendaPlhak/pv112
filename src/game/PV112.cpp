@@ -1,4 +1,4 @@
-#include "PV112.h"
+#include "game/PV112.h"
 
 #define GLEW_STATIC
 #if defined(_WIN32)
@@ -17,12 +17,12 @@
 #include <fstream>
 #include <iostream>
 
-#include "cube.inl"
-#include "sphere.inl"
-#include "teapot.inl"
+#include "game/cube.inl"
+#include "game/sphere.inl"
+#include "game/teapot.inl"
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
-#include "tiny_obj_loader.hpp"
+#include "game/tiny_obj_loader.hpp"
 
 using namespace std;
 

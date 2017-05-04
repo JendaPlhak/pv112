@@ -36,3 +36,5 @@ typedef char maybewchar;
 // Include the most important GLM functions
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+typedef unsigned int uint;

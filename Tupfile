@@ -1,0 +1,33 @@
+ifndef CONFIG_CLANG
+CXX       = g++
+else
+CXX       = $(CONFIG_CLANG)
+endif
+
+ifndef CONFIG_PYTHON_CONFIG
+PYTHON_CONFIG = python3.5-config
+else
+PYTHON_CONFIG = $(CONFIG_PYTHON_CONFIG)
+endif
+
+LDFLAGS   = `$(PYTHON_CONFIG) --ldflags` -lboost_date_time
+LIBS      = `$(PYTHON_CONFIG) --libs` -lboost_date_time -framework OpenGL -lglut -lGLEW -lIL
+INCLUDES  = -Iextern/pybind11/include -Iextern -Iinclude \
+            `$(PYTHON_CONFIG) --includes`
+WARNINGS  =
+MACHINE   = -march=native -mtune=native
+CXXFLAGS  = -std=c++14 -x c++ $(INCLUDES) $(WARNINGS) $(MACHINE) -fPIC
+CXXFLAGS_DEBUG = $(CXXFLAGS) -g3 -O2
+
+GAME_SO_FOR_PYTHON = build/d/_game.so
+
+!cxx_c_debug      = |> ^ c++ debug %f^ \
+    $(CXX) $(CXXFLAGS_DEBUG) -c %f -o %o |>
+!cxx_link_shared  = |> ^ c++ link %f^ \
+    $(CXX) $(LDFLAGS) -shared %f $(LIBS) -o %o |>
+!copy             = |> cp %f %o |>
+
+: foreach src/game/*.cpp |> !cxx_c_debug |> build/d/game/%B.o {debug_objs}
+: {debug_objs} |> !cxx_link_shared |> build/d/_game.so
+
+: $(GAME_SO_FOR_PYTHON) |> !copy |> game/_game.so

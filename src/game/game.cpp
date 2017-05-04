@@ -4,12 +4,12 @@
 #include <time.h>
 #include <random>
 
-#include "libs.hpp"
-#include "PV112.h"
-#include "helpers.hpp"
-#include "cuboid.hpp"
-#include "ball.hpp"
-#include "enemy.hpp"
+#include "game/libs.hpp"
+#include "game/PV112.h"
+#include "game/helpers.hpp"
+#include "game/cuboid.hpp"
+#include "game/ball.hpp"
+#include "game/enemy.hpp"
 
 using namespace std;
 using namespace PV112;

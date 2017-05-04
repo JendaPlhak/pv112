@@ -1,7 +1,7 @@
 #include <cassert>
-#include "cuboid.hpp"
-#include "ball.hpp"
-#include "linalg.hpp"
+#include "game/cuboid.hpp"
+#include "game/ball.hpp"
+#include "game/linalg.hpp"
 
 
 Cuboid::Cuboid(const GLuint program, const PV112::PV112Geometry& geometry,
