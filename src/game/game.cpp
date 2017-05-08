@@ -19,6 +19,9 @@ constexpr uint SLEEP_MS = 15;
 int win_width = 1900;
 int win_height = 1000;
 
+using namespace irrklang;
+ISoundEngine *SoundEngine;
+
 // Shader program and its uniforms
 GLuint program;
 
@@ -108,6 +111,7 @@ void mouse_button_changed(int button, int state, int x, int y)
             g_objects.push_back(std::move(std::make_unique<Ball>(program,
                 position + dir, radius, Motion(dir, speed)
             )));
+            SoundEngine->play2D("audio/fire.mp3", GL_FALSE);
         }
     } else if (button == GLUT_RIGHT_BUTTON) {
         if (state == GLUT_UP) {
@@ -118,6 +122,7 @@ void mouse_button_changed(int button, int state, int x, int y)
             g_objects.push_back(std::move(std::make_unique<Ball>(program,
                 position + dir, radius, Motion(dir, speed)
             )));
+            SoundEngine->play2D("audio/fire.mp3", GL_FALSE);
         }
     }
 }
@@ -316,13 +321,18 @@ void init()
         for (unsigned i = 0; i < 5; ++i) {
             for (unsigned j = 0; j < 4; ++j) {
                 float s = 2.5 * (i + 1);
-                g_objects.push_back(std::move(std::make_unique<Enemy>(dooms, program, 0,
+                g_objects.push_back(std::move(std::make_unique<Enemy>(dooms,
+                    SoundEngine, program, 0,
                     glm::vec3(s*p[j][0], i + 2, s*p[j][1]), 1. / (i + 1),
                     Motion(false)
                 )));
             }
         }
     }
+
+
+    // Play some music please
+    SoundEngine->play2D("audio/kill_them_all.mp3", GL_TRUE);
 }
 
 void RenderString(GLdouble x, GLdouble y, void *font, const std::string& message)
@@ -374,15 +384,13 @@ void render()
     glUniform3f(light_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
     glUniform3f(light_specular_color_loc, 1.0f, 1.0f, 1.0f);
 
-    auto update_mat_properties = [&](const auto& p) {
+    for (const auto& obj : g_objects) {
+        const auto& p = obj->get_material_properties();
         glUniform3fv(material_ambient_color_loc, 1, glm::value_ptr(p.ambient_color));
         glUniform3fv(material_diffuse_color_loc, 1, glm::value_ptr(p.diffuse_color));
         glUniform3fv(material_specular_color_loc, 1, glm::value_ptr(p.specular_color));
         glUniform1f(material_shininess_loc, p.shininess);
-    };
 
-    for (const auto& obj : g_objects) {
-        update_mat_properties(obj->get_material_properties());
         glUniform1f(tex_scale_loc, obj->get_max_scale());
         model_matrix = obj->update_geometry(app_time_s - prev_time_s);
 
@@ -439,6 +447,7 @@ void timer(int)
 int run_game()
 {
     srand(time(NULL));
+    SoundEngine = createIrrKlangDevice();
 
     int argc = 0;
     char **argv = NULL;
@@ -483,5 +492,6 @@ int run_game()
     // Run the main loop
     glutMainLoop();
 
+    SoundEngine->drop();
     return 0;
 }
