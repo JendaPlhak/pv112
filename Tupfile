@@ -11,7 +11,7 @@ PYTHON_CONFIG = $(CONFIG_PYTHON_CONFIG)
 endif
 
 LDFLAGS   = `$(PYTHON_CONFIG) --ldflags` -lboost_date_time
-LIBS      = `$(PYTHON_CONFIG) --libs` -lboost_date_time -framework OpenGL -lglut -lGLEW -lIL
+LIBS      = `$(PYTHON_CONFIG) --libs` -lboost_date_time -lGL -lglut -lGLEW -lIL
 INCLUDES  = -Iextern/pybind11/include -Iextern -Iinclude \
             `$(PYTHON_CONFIG) --includes`
 WARNINGS  =

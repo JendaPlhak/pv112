@@ -40,11 +40,6 @@ GLint light_specular_color_loc;
 
 GLint eye_position_loc;
 
-GLint my_tex_loc;
-GLint rocks_tex_loc;
-GLint wood_tex_loc;
-GLint dice_tex_loc;
-
 // Simple geometries that we will use in this lecture
 PV112Geometry my_cube;
 
@@ -57,11 +52,13 @@ std::array<bool, 4> arrows_pressed = {false, false, false, false};
 // Simple camera that allows us to look at the object from different views
 PV112Camera my_camera(bounds);
 
+auto light1_pos = glm::vec4(-5.5, 6.6, -11, 1.);
+auto light2_pos = glm::vec4(5.5, 6.6, 11, 1.);
+
 // OpenGL texture objects
-GLuint lenna_tex;
 GLuint rocks_tex;
 GLuint wood_tex;
-GLuint alpha_circle_tex;
+GLuint glass_tex;
 GLuint dice_tex[6];
 
 std::vector<std::unique_ptr<Object>> g_objects;
@@ -215,11 +212,6 @@ void init()
 
     eye_position_loc = glGetUniformLocation(program, "eye_position");
 
-    my_tex_loc = glGetUniformLocation(program, "my_tex");
-    rocks_tex_loc = glGetUniformLocation(program, "rocks_tex");
-    wood_tex_loc = glGetUniformLocation(program, "wood_tex");
-    dice_tex_loc = glGetUniformLocation(program, "dice_tex");
-
     std::vector<GLuint> dooms;
     for (uint32_t i = 0; i < 7; ++i) {
         std::string path("img/doom" + std::to_string(i) + ".png");
@@ -230,11 +222,13 @@ void init()
 
     auto wood_tex = PV112::CreateAndLoadTexture("img/wood.jpg");
     auto stone_tex = PV112::CreateAndLoadTexture("img/rocks.jpg");
+    auto glass_tex = PV112::CreateAndLoadTexture("img/glass.jpg");
     bind_tex(wood_tex);
     bind_tex(stone_tex);
+    bind_tex(glass_tex);
 
 
-    auto library_obj = PV112::LoadOBJ("obj/library.obj", position_loc, normal_loc, tex_coord_loc);
+    auto bulb_obj = PV112::LoadOBJ("obj/bulb.obj", position_loc, normal_loc, tex_coord_loc);
     auto table_obj = PV112::LoadOBJ("obj/table.obj", position_loc, normal_loc, tex_coord_loc);
     auto box_obj = PV112::LoadOBJ("obj/box.obj", position_loc, normal_loc, tex_coord_loc);
     auto cube_obj = PV112::CreateCube(position_loc, normal_loc, tex_coord_loc);
@@ -294,14 +288,25 @@ void init()
     };
     create_boxes(0);
     create_boxes(2);
+    MaterialProperties props = {
+        .ambient_color = glm::vec3(0.315f),
+        .diffuse_color = glm::vec3(0.),
+        .specular_color = glm::vec3(0.),
+        .shininess = 0
+    };
 
-    // Make some libs
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        wood_tex, glm::vec3(-11, 1.5, -11), glm::vec3(3, 3, 3), Motion(false)
+    // Make some light bulbs
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, bulb_obj,
+        glass_tex, glm::vec3(light1_pos) + glm::vec3(0, 0.2, 0),
+        glm::vec3(0.5, 0.5, 0.5), Motion(false)
     )));
-     g_objects.push_back(std::move(std::make_unique<Cuboid>(program, library_obj,
-        wood_tex, glm::vec3(11, 1.5, -11), glm::vec3(3, 3, 3), Motion(false)
+    g_objects.back()->set_material_properties(props);
+
+    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, bulb_obj,
+        glass_tex, glm::vec3(light2_pos) + glm::vec3(0, 0.2, 0),
+        glm::vec3(0.5, 0.5, 0.5), Motion(false)
     )));
+    g_objects.back()->set_material_properties(props);
 
     // Create enemies
     {
@@ -320,46 +325,20 @@ void init()
     }
 }
 
+void RenderString(GLdouble x, GLdouble y, void *font, const std::string& message)
+{
+    glColor3d(1.0, 0.0, 0.0);
+    glWindowPos2i( 10, 1014 );
+    for (const auto c : message) {
+        glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, c);
+    }
+}
+
+
 // Called when the window needs to be rendered
 void render()
 {
     my_camera.ProcessArrowKeys(arrows_pressed, app_time_s - prev_time_s);
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glm::mat4 projection_matrix, view_matrix, model_matrix, PVM_matrix;
-    glm::mat3 normal_matrix;
-
-    projection_matrix = glm::perspective(glm::radians(45.0f),
-            float(win_width) / float(win_height), 0.1f, 100.0f);
-    view_matrix = my_camera.get_view_matrix();
-
-    // Light position, with a simple animation
-    glm::vec4 light1_pos =
-        glm::rotate(glm::mat4(1.0f), app_time_s, glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, 6.0f, -5.0f)) *
-        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 light2_pos =
-        glm::rotate(glm::mat4(1.0f), -1.76794f*app_time_s + 2.11f,
-            glm::vec3(0.0f, 1.0f, 0.0f)) *
-        glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, 6.0f, 5.0f)) *
-        glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-
-    glUseProgram(program);
-
-    glUniform3fv(eye_position_loc, 1, glm::value_ptr(my_camera.get_position()));
-
-    glUniform4fv(light1_position_loc, 1, glm::value_ptr(light1_pos));
-    glUniform4fv(light2_position_loc, 1, glm::value_ptr(light2_pos));
-    glUniform3f(light_ambient_color_loc, 0.3f, 0.3f, 0.3f);
-    glUniform3f(light_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
-    glUniform3f(light_specular_color_loc, 1.0f, 1.0f, 1.0f);
-
-    glUniform3f(material_ambient_color_loc, 1.0f, 1.0f, 1.0f);
-    glUniform3f(material_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
-    glUniform3f(material_specular_color_loc, 1.0f, 1.0f, 1.0f);
-    glUniform1f(material_shininess_loc, 40.0f);
-
     for (size_t i = 0; i < g_objects.size(); ++i) {
         const auto& obj_A = g_objects.at(i);
         for (size_t j = i + 1; j < g_objects.size(); ++j) {
@@ -373,7 +352,37 @@ void render()
         }
     }
 
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // RenderString(0.0f, 0.0f, GLUT_BITMAP_TIMES_ROMAN_24, "Hello");
+
+    glm::mat4 projection_matrix, view_matrix, model_matrix, PVM_matrix;
+    glm::mat3 normal_matrix;
+
+    projection_matrix = glm::perspective(glm::radians(45.0f),
+            float(win_width) / float(win_height), 0.1f, 100.0f);
+    view_matrix = my_camera.get_view_matrix();
+
+
+    glUseProgram(program);
+
+    glUniform3fv(eye_position_loc, 1, glm::value_ptr(my_camera.get_position()));
+
+    glUniform4fv(light1_position_loc, 1, glm::value_ptr(light1_pos));
+    glUniform4fv(light2_position_loc, 1, glm::value_ptr(light2_pos));
+    glUniform3f(light_ambient_color_loc, 1.0f, 1.0f, 1.0f);
+    glUniform3f(light_diffuse_color_loc, 1.0f, 1.0f, 1.0f);
+    glUniform3f(light_specular_color_loc, 1.0f, 1.0f, 1.0f);
+
+    auto update_mat_properties = [&](const auto& p) {
+        glUniform3fv(material_ambient_color_loc, 1, glm::value_ptr(p.ambient_color));
+        glUniform3fv(material_diffuse_color_loc, 1, glm::value_ptr(p.diffuse_color));
+        glUniform3fv(material_specular_color_loc, 1, glm::value_ptr(p.specular_color));
+        glUniform1f(material_shininess_loc, p.shininess);
+    };
+
     for (const auto& obj : g_objects) {
+        update_mat_properties(obj->get_material_properties());
         glUniform1f(tex_scale_loc, obj->get_max_scale());
         model_matrix = obj->update_geometry(app_time_s - prev_time_s);
 
@@ -427,9 +436,12 @@ void timer(int)
     glutPostRedisplay();
 }
 
-int main(int argc, char ** argv)
+int run_game()
 {
     srand(time(NULL));
+
+    int argc = 0;
+    char **argv = NULL;
     // Initialize GLUT
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);

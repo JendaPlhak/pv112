@@ -15,14 +15,12 @@ def center(toplevel):
     size = tuple(int(_) for _ in toplevel.geometry().split('+')[0].split('x'))
     x = w/2 - size[0]/2
     y = h/2 - size[1]/2
-    print(size + (x, y))
     toplevel.geometry("%dx%d+%d+%d" % (size + (x, y)))
 
 class App:
   def __init__(self, master):
     center(master)
-    master.minsize(width=800, height=400)
-    master.maxsize(width=800, height=400)
+    master.minsize(width=800, height=450)
 
     master.title("Headache")
     master.configure(background='black')
@@ -31,7 +29,7 @@ class App:
     msg.config(bg='black', foreground="white",
         justify="center", font=('times', 24, 'italic'),
         width=800)
-    msg.pack( )
+    msg.pack()
 
     frame = Frame(master)
     frame.pack()
@@ -49,6 +47,7 @@ class App:
     _game.run()
 
 if __name__ == '__main__':
-    root = Tk()
-    app = App(root)
-    root.mainloop()
+    _game.run()
+    # root = Tk()
+    # app = App(root)
+    # root.mainloop()

@@ -20,36 +20,39 @@ uniform vec3 light_specular_color;
 uniform vec3 eye_position;
 
 uniform sampler2D my_tex;
-uniform sampler2D rocks_tex;
-uniform sampler2D wood_tex;
-uniform sampler2D dice_tex;
 
-void main()
+vec3 get_light(vec4 light_position)
 {
-	vec3 wood_color = texture(wood_tex, VS_tex_coord).rgb;
-	vec3 rock_color = texture(rocks_tex, VS_tex_coord).rgb;
     vec3 tex_color = texture(my_tex, VS_tex_coord).rgb;
 
     vec3 N = normalize(VS_normal_ws);
     vec3 Eye = normalize(eye_position - VS_position_ws);
-
-    vec3 L1 = normalize(light1_position.xyz - VS_position_ws * light1_position.w);
-    vec3 L2 = normalize(light2_position.xyz - VS_position_ws * light2_position.w);
-    vec3 L = normalize(L1 + L2);
+    vec3 L = normalize(light_position.xyz - VS_position_ws * light_position.w);
 
     vec3 H = normalize(L + Eye);
 
     float Idiff = max(dot(N, L), 0.0);
     float Ispec = pow(max(dot(N, H), 0.0), material_shininess) * Idiff;
 
+    // Attenuation
+    float distance    = length(light_position.xyz - VS_position_ws);
+    float attenuation = 1.0f / (0.3 + 0.02 * distance +
+                 0.01 * (distance * distance));
+
     vec3 mat_ambient = material_ambient_color;
     vec3 mat_diffuse = material_diffuse_color;
     vec3 mat_specular = material_specular_color;
 
     vec3 light =
-        mat_ambient * light_ambient_color * tex_color +
-        mat_diffuse * light_diffuse_color * Idiff * tex_color +
-        mat_specular * light_specular_color * Ispec;
+        mat_ambient * light_ambient_color * tex_color * attenuation +
+        mat_diffuse * light_diffuse_color * Idiff * tex_color * attenuation +
+        mat_specular * light_specular_color * Ispec * attenuation;
+    return light;
+}
+
+void main()
+{
+    vec3 light = get_light(light1_position) + get_light(light2_position);
 
     final_color = vec4(light, 1.0);
 }

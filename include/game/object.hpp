@@ -4,6 +4,7 @@
 #include <limits>
 #include <vector>
 #include "libs.hpp"
+#include "game/material_properties.hpp"
 
 class Ball;
 class Cuboid;
@@ -83,6 +84,7 @@ struct Motion {
 class Object {
 private:
     static uint32_t COUNT;
+    MaterialProperties m_mat_properties;
 protected:
     const uint32_t m_id;
     uint32_t m_last_contact = -1;
@@ -104,6 +106,13 @@ public:
     const bool is_active() const {
         return m_motion.active;
     }
+    const MaterialProperties& get_material_properties() const {
+        return m_mat_properties;
+    }
+    void set_material_properties(const MaterialProperties& properties) {
+        m_mat_properties = properties;
+    }
+
 
     virtual float get_max_scale() const {
         auto widths = m_aabb.get_halfwidths();
