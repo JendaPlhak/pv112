@@ -19,7 +19,6 @@ def center(toplevel):
 
 class App:
   def __init__(self, master):
-    self._options = _game.Options()
     center(master)
     master.minsize(width=800, height=450)
 
@@ -32,8 +31,15 @@ class App:
         width=800)
     msg.pack()
 
+    choices = ['Easy', 'Medium', 'Hard']
+    self._gun = StringVar(root)
+    self._gun.set('... Please select difficulty...')
+    w = OptionMenu(root, self._gun, *choices)
+    w.pack()
+
     frame = Frame(master)
     frame.pack()
+
     self.button = Button(frame,
                          text="Exit", fg="red",
                          justify="right",
@@ -46,7 +52,22 @@ class App:
     self.slogan.pack(side=LEFT)
 
   def run_game(self):
-    _game.run(self._options)
+    opts = _game.Options()
+    if self._gun.get() == 'Easy':
+        opts.machine_gun = True
+        opts.game_time = 45
+        opts.ball_time = 10
+    elif self._gun.get() == 'Medium':
+        opts.machine_gun = True
+        opts.game_time = 30
+        opts.ball_time = 3
+    else:
+        opts.machine_gun = False
+        opts.game_time = 35
+        opts.ball_time = 5
+
+    _game.run(opts)
+    exit(0)
 
 if __name__ == '__main__':
     # _game.run()
