@@ -7,6 +7,7 @@ public:
         std::vector<GLuint> texs;
     };
 private:
+    static constexpr float DISAPPEAR_AFTER = 5.;
     size_t m_hits = 0;
     std::vector<GLuint> m_textures;
     irrklang::ISoundEngine *m_sound;
@@ -29,16 +30,21 @@ public:
         DrawGeometry(m_geometry);
     }
 
-    virtual void got_hit(const uint32_t other_id) {
+    bool is_alive() const {
+        return m_hits < m_textures.size() - 1;
+    }
+
+    virtual void got_hit(const uint32_t other_id, const float time) {
         if (m_last_contact != other_id) {
             ++m_hits;
-            if (m_hits < m_textures.size() - 1) {
+            if (is_alive()) {
                 // Leaks memory
                 m_sound->play2D("audio/hit.wav", GL_FALSE);
             } else if (m_hits == m_textures.size() - 1) {
                 m_motion.active = true;
                 // Leaks memory
                 m_sound->play2D("audio/death.wav", GL_FALSE);
+                this->set_expiration_time(time + DISAPPEAR_AFTER);
             }
         }
     }

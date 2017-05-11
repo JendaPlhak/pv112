@@ -19,6 +19,7 @@ def center(toplevel):
 
 class App:
   def __init__(self, master):
+    self._options = _game.Options()
     center(master)
     master.minsize(width=800, height=450)
 
@@ -43,11 +44,12 @@ class App:
                          justify="left",
                          command=self.run_game)
     self.slogan.pack(side=LEFT)
+
   def run_game(self):
-    _game.run()
+    _game.run(self._options)
 
 if __name__ == '__main__':
-    _game.run()
-    # root = Tk()
-    # app = App(root)
-    # root.mainloop()
+    # _game.run()
+    root = Tk()
+    app = App(root)
+    root.mainloop()

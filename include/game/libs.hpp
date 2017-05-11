@@ -30,8 +30,8 @@ typedef char maybewchar;
 #define MAYBEWIDE(s) s
 #endif
 
-// Include FreeGLUT
-#include <GL/freeglut.h>
+#include <GLFW/glfw3.h>
+
 
 // Include the most important GLM functions
 #include <glm/gtc/type_ptr.hpp>

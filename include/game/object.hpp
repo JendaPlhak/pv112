@@ -91,14 +91,17 @@ protected:
     AABB m_aabb;
     Motion m_motion;
     bool m_fixed = false;
+    float m_expiration_time;
 
 public:
     Object() = default;
     Object(const AABB& aabb)
-     : m_id(COUNT++), m_aabb(aabb), m_motion(glm::vec3(1), 0)
+     : m_id(COUNT++), m_aabb(aabb), m_motion(glm::vec3(1), 0),
+       m_expiration_time(std::numeric_limits<float>::max())
     { }
     Object(const AABB& aabb, const Motion& motion)
-     : m_id(COUNT++), m_aabb(aabb), m_motion(motion)
+     : m_id(COUNT++), m_aabb(aabb), m_motion(motion),
+       m_expiration_time(std::numeric_limits<float>::max())
     { }
     const AABB& get_aabb() const {
         return m_aabb;
@@ -112,7 +115,12 @@ public:
     void set_material_properties(const MaterialProperties& properties) {
         m_mat_properties = properties;
     }
-
+    bool is_expired(const float time) {
+        return m_expiration_time <= time;
+    }
+    void set_expiration_time(const float time) {
+        m_expiration_time = time;
+    }
 
     virtual float get_max_scale() const {
         auto widths = m_aabb.get_halfwidths();
@@ -126,7 +134,7 @@ public:
     virtual bool check_collision_what(const Cuboid&) const = 0;
 
     virtual float mass() const = 0;
-    virtual void bounce(Object& other) {
+    virtual void bounce(Object& other, const float time) {
         if (!this->is_active() && !other.is_active()) {
             return;
         } else if (m_last_contact == other.m_id && other.m_last_contact == m_id) {
@@ -169,14 +177,14 @@ public:
             m_motion.v *= bounciness;
             other.m_motion.v *= bounciness;
         }
-        this->got_hit(other.m_id);
-        other.got_hit(m_id);
+        this->got_hit(other.m_id, time);
+        other.got_hit(m_id, time);
         m_last_contact = other.m_id;
         other.m_last_contact = m_id;
     }
     virtual glm::vec3 bounce_normal(const Object&) const = 0;
     virtual glm::vec3 bounce_normal_what(const Ball&) const = 0;
     virtual glm::vec3 bounce_normal_what(const Cuboid&) const = 0;
-    virtual void got_hit(const uint32_t other_id) {
+    virtual void got_hit(const uint32_t other_id, const float time) {
     }
 };

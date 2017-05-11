@@ -1,10 +1,15 @@
 // PV112 2017, lesson 4 - textures
-
+#include <algorithm>
 #include <memory>
 #include <time.h>
 #include <random>
 
 #include "game/libs.hpp"
+#include "game/game.hpp"
+
+#include <imgui/imgui.h>
+#include "game/imgui_impl_glfw_gl3.h"
+
 #include "game/PV112.h"
 #include "game/helpers.hpp"
 #include "game/cuboid.hpp"
@@ -18,6 +23,9 @@ constexpr uint SLEEP_MS = 15;
 // Current window size
 int win_width = 1900;
 int win_height = 1000;
+
+bool exit_game = false;
+bool fire = false;
 
 using namespace irrklang;
 ISoundEngine *SoundEngine;
@@ -60,35 +68,79 @@ auto light2_pos = glm::vec4(5.5, 6.6, 11, 1.);
 
 // OpenGL texture objects
 GLuint rocks_tex;
-GLuint wood_tex;
+GLuint metal_tex;
+GLuint spike_tex;
 GLuint glass_tex;
 GLuint dice_tex[6];
 
-std::vector<std::unique_ptr<Object>> g_objects;
+std::vector<std::shared_ptr<Object>> g_objects;
+std::vector<std::shared_ptr<Object>> g_enemies;
 
 // Current time of the application in seconds, for animations
 float app_time_s = 0.0f;
 float prev_time_s = 0.0f;
+float close_time_s = std::numeric_limits<float>::max();
+float last_fired = 0.f;
 
-// Called when the user presses a key
-void key_pressed(unsigned char key, int mouseX, int mouseY)
+GameOptions game_opts;
+
+// Simple timer function for animations
+void timer()
 {
-    switch (key)
-    {
-    case 27: // Escape
-        exit(0);
-        break;
-    case 'l':
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glutPostRedisplay();
-        break;
-    case 'f':
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glutPostRedisplay();
-        break;
-    case 't':
-        glutFullScreenToggle();
-        break;
+    prev_time_s = app_time_s;
+    app_time_s = glfwGetTime();
+}
+
+void CheckArrowPressed(int key)
+{
+    if (key == GLFW_KEY_UP) {
+        arrows_pressed.at(0) = true;
+    }
+    // Move backward
+    if (key == GLFW_KEY_DOWN) {
+        arrows_pressed.at(1) = true;
+    }
+    // Strafe right
+    if (key == GLFW_KEY_RIGHT) {
+        arrows_pressed.at(2) = true;
+    }
+    // Strafe left
+    if (key == GLFW_KEY_LEFT) {
+        arrows_pressed.at(3) = true;
+    }
+}
+
+void CheckArrowReleased(int key)
+{
+    if (key == GLFW_KEY_UP) {
+        arrows_pressed.at(0) = false;
+    }
+    // Move backward
+    if (key == GLFW_KEY_DOWN) {
+        arrows_pressed.at(1) = false;
+    }
+    // Strafe right
+    if (key == GLFW_KEY_RIGHT) {
+        arrows_pressed.at(2) = false;
+    }
+    // Strafe left
+    if (key == GLFW_KEY_LEFT) {
+        arrows_pressed.at(3) = false;
+    }
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        exit_game = true;
+    }
+    if (action == GLFW_PRESS) {
+        CheckArrowPressed(key);
+    } else if (action == GLFW_RELEASE) {
+        CheckArrowReleased(key);
+    }
+    if (app_time_s > game_opts.game_time) {
+        arrows_pressed.fill(false);
     }
 }
 
@@ -96,79 +148,44 @@ auto random_range = [](float LO, float HI) {
     return LO + (HI-LO) * ((rand() % 100) / 100.f);
 };
 
-// Called when the user presses a mouse button
-void mouse_button_changed(int button, int state, int x, int y)
-{
+void fire_ball() {
     const auto position = my_camera.get_position();
+    const float radius = random_range(0.1, 0.3);
+    const float speed = random_range(5., 17.);
+    auto dir = glm::normalize(my_camera.get_direction());
+    dir *= (radius + 0.6);
 
-    if (button == GLUT_LEFT_BUTTON) {
-        if (state == GLUT_UP) {
-            const float radius = random_range(0.1, 0.3);
-            const float speed = random_range(5., 17.);
-            auto dir = glm::normalize(my_camera.get_direction());
-            dir *= (radius + 0.6);
+    g_objects.push_back(std::move(std::make_shared<Ball>(program,
+        position + dir, radius, Motion(dir, speed)
+    )));
+    g_objects.back()->set_expiration_time(app_time_s + game_opts.ball_time);
+    SoundEngine->play2D("audio/fire.mp3", GL_FALSE);
+}
 
-            g_objects.push_back(std::move(std::make_unique<Ball>(program,
-                position + dir, radius, Motion(dir, speed)
-            )));
-            SoundEngine->play2D("audio/fire.mp3", GL_FALSE);
+// Called when the user presses a mouse button
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (app_time_s > game_opts.game_time) {
+        return;
+    }
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS && game_opts.machine_gun) {
+            fire = true;
         }
-    } else if (button == GLUT_RIGHT_BUTTON) {
-        if (state == GLUT_UP) {
-            const float radius = random_range(0.3, 0.5);
-            const float speed = random_range(3., 9.);
-            auto dir = glm::normalize(my_camera.get_direction());
-            dir *= (radius + 0.6);
-            g_objects.push_back(std::move(std::make_unique<Ball>(program,
-                position + dir, radius, Motion(dir, speed)
-            )));
-            SoundEngine->play2D("audio/fire.mp3", GL_FALSE);
+        if (action == GLFW_RELEASE) {
+            fire = false;
+            if (!game_opts.machine_gun) {
+                fire_ball();
+            }
         }
     }
 }
 
-// Called when the user moves with the mouse (when some mouse button is pressed)
-void mouse_moved(int x, int y)
+// Called when the user moves with the mouse
+void mouse_moved(GLFWwindow* window, double x, double y)
 {
     my_camera.OnMouseMoved(x, y, app_time_s - prev_time_s);
-}
-
-void SpecialInputPressed(int key, int x, int y)
-{
-    if (key == GLUT_KEY_UP) {
-        arrows_pressed.at(0) = true;
-    }
-    // Move backward
-    if (key == GLUT_KEY_DOWN) {
-        arrows_pressed.at(1) = true;
-    }
-    // Strafe right
-    if (key == GLUT_KEY_RIGHT) {
-        arrows_pressed.at(2) = true;
-    }
-    // Strafe left
-    if (key == GLUT_KEY_LEFT) {
-        arrows_pressed.at(3) = true;
-    }
-}
-
-void SpecialInputReleased(int key, int x, int y)
-{
-    if (key == GLUT_KEY_UP) {
-        arrows_pressed.at(0) = false;
-    }
-    // Move backward
-    if (key == GLUT_KEY_DOWN) {
-        arrows_pressed.at(1) = false;
-    }
-    // Strafe right
-    if (key == GLUT_KEY_RIGHT) {
-        arrows_pressed.at(2) = false;
-    }
-    // Strafe left
-    if (key == GLUT_KEY_LEFT) {
-        arrows_pressed.at(3) = false;
-    }
 }
 
 void bind_tex(const GLuint tex)
@@ -182,9 +199,20 @@ void bind_tex(const GLuint tex)
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void init_imgui(GLFWwindow* window)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF("extern/imgui/extra_fonts/Cousine-Regular.ttf", 40.0f);
+    io.MouseDrawCursor = false;
+    // Setup ImGui binding
+    ImGui_ImplGlfwGL3_Init(window, false);
+}
+
 // Initializes OpenGL stuff
 void init()
 {
+    timer();
+
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(1.0);
     glEnable(GL_DEPTH_TEST);
@@ -225,10 +253,12 @@ void init()
         bind_tex(tex);
     }
 
-    auto wood_tex = PV112::CreateAndLoadTexture("img/wood.jpg");
+    auto metal_tex = PV112::CreateAndLoadTexture("img/table_metal.jpg");
+    auto spike_tex = PV112::CreateAndLoadTexture("img/spikes.jpg");
     auto stone_tex = PV112::CreateAndLoadTexture("img/rocks.jpg");
     auto glass_tex = PV112::CreateAndLoadTexture("img/glass.jpg");
-    bind_tex(wood_tex);
+    bind_tex(metal_tex);
+    bind_tex(spike_tex);
     bind_tex(stone_tex);
     bind_tex(glass_tex);
 
@@ -248,7 +278,7 @@ void init()
 
             center[i] = bounds[i][dir] + thickness * (dir ? 1 : -1);
             widths[i] = thickness;
-            g_objects.push_back(std::move(std::make_unique<Cuboid>(program, cube_obj,
+            g_objects.push_back(std::move(std::make_shared<Cuboid>(program, cube_obj,
                 stone_tex, center, widths, Motion(false)
             )));
         }
@@ -256,8 +286,8 @@ void init()
 
 
     // Table in the middle
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, table_obj,
-        wood_tex, glm::vec3(0, 0, 0), glm::vec3(4.5, 4, 4.5), Motion(false)
+    g_objects.push_back(std::move(std::make_shared<Cuboid>(program, table_obj,
+        metal_tex, glm::vec3(0, 0, 0), glm::vec3(4.5, 4, 4.5), Motion(false)
     )));
     // Balls on the table
     {
@@ -265,7 +295,7 @@ void init()
             {1, 1}, {-1, 1}, {1, -1}, {-1, -1}
         };
         for (unsigned i = 0; i < 4; ++i) {
-            g_objects.push_back(std::move(std::make_unique<Ball>(program,
+            g_objects.push_back(std::move(std::make_shared<Ball>(program,
                 glm::vec3(1*p[i][0], 2. + i, 1*p[i][1]), 0.25,
                 Motion({0, 1, 0}, 3.)
             )));
@@ -286,8 +316,8 @@ void init()
             position[D] = bounds[0][0] + i*spread;
             dir[D] = one();
 
-            g_objects.push_back(std::move(std::make_unique<Cuboid>(program, box_obj,
-                wood_tex, position, glm::vec3(0.5, 0.75, 0.4), Motion(dir, 3.)
+            g_objects.push_back(std::move(std::make_shared<Cuboid>(program, box_obj,
+                spike_tex, position, glm::vec3(0.5, 0.75, 0.4), Motion(dir, 3.)
             )));
         }
     };
@@ -301,13 +331,13 @@ void init()
     };
 
     // Make some light bulbs
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, bulb_obj,
+    g_objects.push_back(std::move(std::make_shared<Cuboid>(program, bulb_obj,
         glass_tex, glm::vec3(light1_pos) + glm::vec3(0, 0.2, 0),
         glm::vec3(0.5, 0.5, 0.5), Motion(false)
     )));
     g_objects.back()->set_material_properties(props);
 
-    g_objects.push_back(std::move(std::make_unique<Cuboid>(program, bulb_obj,
+    g_objects.push_back(std::move(std::make_shared<Cuboid>(program, bulb_obj,
         glass_tex, glm::vec3(light2_pos) + glm::vec3(0, 0.2, 0),
         glm::vec3(0.5, 0.5, 0.5), Motion(false)
     )));
@@ -321,7 +351,7 @@ void init()
         for (unsigned i = 0; i < 5; ++i) {
             for (unsigned j = 0; j < 4; ++j) {
                 float s = 2.5 * (i + 1);
-                g_objects.push_back(std::move(std::make_unique<Enemy>(dooms,
+                g_enemies.push_back(std::move(std::make_shared<Enemy>(dooms,
                     SoundEngine, program, 0,
                     glm::vec3(s*p[j][0], i + 2, s*p[j][1]), 1. / (i + 1),
                     Motion(false)
@@ -329,26 +359,31 @@ void init()
             }
         }
     }
+    g_objects.insert(g_objects.end(), g_enemies.begin(), g_enemies.end());
 
 
     // Play some music please
     SoundEngine->play2D("audio/kill_them_all.mp3", GL_TRUE);
 }
 
-void RenderString(GLdouble x, GLdouble y, void *font, const std::string& message)
-{
-    glColor3d(1.0, 0.0, 0.0);
-    glWindowPos2i( 10, 1014 );
-    for (const auto c : message) {
-        glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, c);
-    }
+void clear_objects() {
+    auto clear = [](auto& objects) {
+        objects.erase(std::remove_if(objects.begin(), objects.end(),
+                [](const auto& obj) {
+                    return obj->is_expired(app_time_s);
+                }),
+            objects.end());
+    };
+    clear(g_objects);
+    clear(g_enemies);
 }
-
 
 // Called when the window needs to be rendered
 void render()
 {
     my_camera.ProcessArrowKeys(arrows_pressed, app_time_s - prev_time_s);
+
+    clear_objects();
     for (size_t i = 0; i < g_objects.size(); ++i) {
         const auto& obj_A = g_objects.at(i);
         for (size_t j = i + 1; j < g_objects.size(); ++j) {
@@ -357,14 +392,13 @@ void render()
                 continue;
             }
             if (obj_A->check_collision(*obj_B)) {
-                obj_A->bounce(*obj_B);
+                obj_A->bounce(*obj_B, app_time_s);
             }
         }
     }
 
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // RenderString(0.0f, 0.0f, GLUT_BITMAP_TIMES_ROMAN_24, "Hello");
 
     glm::mat4 projection_matrix, view_matrix, model_matrix, PVM_matrix;
     glm::mat3 normal_matrix;
@@ -405,18 +439,6 @@ void render()
 
     glBindVertexArray(0);
     glUseProgram(0);
-
-    glutSwapBuffers();
-}
-
-// Called when the window changes its size
-void reshape(int width, int height)
-{
-    win_width = width;
-    win_height = height;
-
-    // Set the area into which we render
-    glViewport(0, 0, win_width, win_height);
 }
 
 // Callback function to be called when we make an error in OpenGL
@@ -435,35 +457,51 @@ void GLAPIENTRY simple_debug_callback(GLenum source, GLenum type, GLuint id,
     }
 }
 
-// Simple timer function for animations
-void timer(int)
-{
-    prev_time_s = app_time_s;
-    app_time_s += SLEEP_MS / 1000.f;
-    glutTimerFunc(SLEEP_MS, timer, 0);
-    glutPostRedisplay();
+void get_resolution() {
+    const GLFWvidmode * mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+    win_width = mode->width;
+    win_height = mode->height;
 }
 
-int run_game()
+int alive_enemies() {
+    return std::count_if(g_enemies.begin(), g_enemies.end(), [](const auto& enemy) {
+        return std::static_pointer_cast<Enemy>(enemy)->is_alive();
+    });
+}
+
+int run_game(const GameOptions& opts)
 {
     srand(time(NULL));
     SoundEngine = createIrrKlangDevice();
+    exit_game = false;
+    game_opts = opts;
 
-    int argc = 0;
-    char **argv = NULL;
-    // Initialize GLUT
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+    GLFWwindow* window;
+    /* Initialize the library */
+    if (!glfwInit()) {
+        return -1;
+    }
 
-    // Set OpenGL Context parameters
-    glutInitContextVersion(3, 3);
-    glutInitContextProfile(GLUT_CORE_PROFILE);
-    glutInitContextFlags(GLUT_DEBUG);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    get_resolution();
 
-    // Initialize window
-    glutInitWindowSize(win_width, win_height);
-    glutCreateWindow("PV112 - cv4 - textures");
+    /* Create a windowed mode window and its OpenGL context */
+    window = glfwCreateWindow(win_width, win_height, "The Game",
+        glfwGetPrimaryMonitor(), NULL);
+    if (!window) {
+        glfwTerminate();
+        return -1;
+    }
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, mouse_moved);
+    glfwSetKeyCallback(window, key_callback);
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
 
     // Initialize GLEW
     glewExperimental = GL_TRUE;
@@ -472,26 +510,48 @@ int run_game()
     // Initialize DevIL library
     ilInit();
 
-    // Set the debug callback
-    SetDebugCallback(simple_debug_callback);
-
-    // Initialize our OpenGL stuff
+    init_imgui(window);
     init();
 
-    // Register callbacks
-    glutDisplayFunc(render);
-    glutReshapeFunc(reshape);
-    glutKeyboardFunc(key_pressed);
-    glutTimerFunc(SLEEP_MS, timer, 0);
-    glutMouseFunc(mouse_button_changed);
-    glutPassiveMotionFunc(mouse_moved);
-    glutSpecialFunc(SpecialInputPressed);
-    glutSpecialUpFunc(SpecialInputReleased);
-    glutFullScreenToggle();
+    /* Loop until the user closes the window */
+    while (!glfwWindowShouldClose(window) && !exit_game && close_time_s >= app_time_s)
+    {
+        /* Poll for and process events */
+        glfwPollEvents();
+        ImGui_ImplGlfwGL3_NewFrame();
+        timer();
 
-    // Run the main loop
-    glutMainLoop();
+        if (fire && last_fired + 0.1 < app_time_s) {
+            fire_ball();
+            last_fired = app_time_s;
+        }
 
+        int remaining_enemies = alive_enemies();
+        if (app_time_s < game_opts.game_time && remaining_enemies != 0) {
+            ImGui::Text(" ---- PLAY! ----");
+            ImGui::Text("REMAINING ENEMIES: %d", alive_enemies());
+        } else {
+            fire = false;
+            if (remaining_enemies == 0) {
+                ImGui::Text(" ---- YOU WON! ---- ");
+            } else {
+                ImGui::Text(" ---- YOU LOST! ---- ");
+            }
+            if (close_time_s == std::numeric_limits<float>::max()) {
+                close_time_s = app_time_s + 10.;
+            }
+        }
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        render();
+        ImGui::Render();
+
+        /* Swap front and back buffers */
+        glfwSwapBuffers(window);
+    }
+
+    ImGui_ImplGlfwGL3_Shutdown();
     SoundEngine->drop();
+    glfwDestroyWindow(window);
     return 0;
 }

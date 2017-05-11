@@ -11,14 +11,14 @@ PYTHON_CONFIG = $(CONFIG_PYTHON_CONFIG)
 endif
 
 LDFLAGS   = `$(PYTHON_CONFIG) --ldflags` -Lextern/irrKlang/bin/linux-gcc-64/
-LIBS      = `$(PYTHON_CONFIG) --libs` -lboost_date_time -lGL -lglut -lGLEW -lIL \
+LIBS      = `$(PYTHON_CONFIG) --libs` -lboost_date_time -lGL -lglut -lGLEW -lIL -lglfw \
             extern/irrKlang/bin/linux-gcc-64/libIrrKlang.so
 INCLUDES  = -Iextern/pybind11/include -Iextern -Iinclude \
             `$(PYTHON_CONFIG) --includes` -Iextern/irrKlang/include
 WARNINGS  =
 MACHINE   = -march=native -mtune=native
 CXXFLAGS  = -std=c++14 -x c++ $(INCLUDES) $(WARNINGS) $(MACHINE) -fPIC
-CXXFLAGS_DEBUG = $(CXXFLAGS) -g3 -O2
+CXXFLAGS_DEBUG = $(CXXFLAGS) -g3 -Og
 
 GAME_SO_FOR_PYTHON = build/d/_game.so
 
@@ -28,6 +28,8 @@ GAME_SO_FOR_PYTHON = build/d/_game.so
     $(CXX) $(LDFLAGS)  -shared %f $(LIBS) -o %o |>
 !copy             = |> cp %f %o |>
 
+: extern/imgui/imgui.cpp |> !cxx_c_debug |> build/d/game/%B.o {debug_objs}
+: extern/imgui/imgui_draw.cpp |> !cxx_c_debug |> build/d/game/%B.o {debug_objs}
 : foreach src/game/*.cpp |> !cxx_c_debug |> build/d/game/%B.o {debug_objs}
 : {debug_objs} |> !cxx_link_shared |> build/d/_game.so
 
