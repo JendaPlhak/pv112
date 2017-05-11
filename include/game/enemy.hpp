@@ -7,7 +7,7 @@ public:
         std::vector<GLuint> texs;
     };
 private:
-    static constexpr float DISAPPEAR_AFTER = 5.;
+    static constexpr float DISAPPEAR_AFTER = 2.;
     size_t m_hits = 0;
     std::vector<GLuint> m_textures;
     irrklang::ISoundEngine *m_sound;
@@ -33,6 +33,35 @@ public:
     bool is_alive() const {
         return m_hits < m_textures.size() - 1;
     }
+
+    bool kills_player(const glm::vec3 positon) {
+        return glm::distance(m_center, positon) < 1.f && is_alive();
+    }
+
+    virtual glm::mat4 update_geometry(const float) {
+        auto model_matrix = glm::translate(glm::mat4(1.f), m_center);
+        model_matrix = glm::scale(model_matrix, m_scale);
+        return model_matrix;
+    }
+
+    void maybe_activate(const glm::vec3 dir) {
+        if (!m_motion.active) {
+            m_motion = Motion(dir, 2.);
+        }
+    }
+
+    void follow_player(const float time_delta, const glm::vec3 player_position) {
+
+
+        m_motion.account_gravity(time_delta);
+        auto to_player = player_position - m_center;
+        this->maybe_activate(to_player);
+        to_player.y = 0;
+
+        m_center = m_center + time_delta * m_motion.v;
+        m_aabb.set_center(m_center);
+    }
+
 
     virtual void got_hit(const uint32_t other_id, const float time) {
         if (m_last_contact != other_id) {

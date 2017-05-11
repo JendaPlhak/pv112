@@ -26,6 +26,7 @@ int win_height = 1000;
 
 bool exit_game = false;
 bool fire = false;
+bool player_alive = true;
 
 using namespace irrklang;
 ISoundEngine *SoundEngine;
@@ -139,7 +140,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     } else if (action == GLFW_RELEASE) {
         CheckArrowReleased(key);
     }
-    if (app_time_s > game_opts.game_time) {
+    if (app_time_s > game_opts.game_time || !player_alive) {
         arrows_pressed.fill(false);
     }
 }
@@ -165,7 +166,7 @@ void fire_ball() {
 // Called when the user presses a mouse button
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    if (app_time_s > game_opts.game_time) {
+    if (app_time_s > game_opts.game_time || !player_alive)  {
         return;
     }
 
@@ -470,6 +471,29 @@ int alive_enemies() {
     });
 }
 
+void step_game() {
+    if (fire && last_fired + 0.1 < app_time_s) {
+        fire_ball();
+        last_fired = app_time_s;
+    }
+    if (player_alive) {
+        for (const auto& enemy : g_enemies) {
+            const auto pos = my_camera.get_position();
+            if (std::static_pointer_cast<Enemy>(enemy)->kills_player(pos)) {
+                player_alive = false;
+                SoundEngine->play2D("audio/death_player.mp3", GL_FALSE);
+            }
+        }
+    }
+    if (app_time_s > 30.f) {
+        float time_delta = app_time_s - prev_time_s;
+        for (const auto& enemy : g_enemies) {
+            std::static_pointer_cast<Enemy>(enemy)->follow_player(time_delta,
+                my_camera.get_position());
+        }
+    }
+}
+
 int run_game(const GameOptions& opts)
 {
     srand(time(NULL));
@@ -520,16 +544,13 @@ int run_game(const GameOptions& opts)
         glfwPollEvents();
         ImGui_ImplGlfwGL3_NewFrame();
         timer();
-
-        if (fire && last_fired + 0.1 < app_time_s) {
-            fire_ball();
-            last_fired = app_time_s;
-        }
+        step_game();
 
         int remaining_enemies = alive_enemies();
-        if (app_time_s < game_opts.game_time && remaining_enemies != 0) {
+        if (app_time_s < game_opts.game_time && remaining_enemies != 0 && player_alive) {
             ImGui::Text(" ---- PLAY! ----");
             ImGui::Text("REMAINING ENEMIES: %d", alive_enemies());
+            ImGui::Text("REMAINING TIME: %ds", int(game_opts.game_time - app_time_s));
         } else {
             fire = false;
             if (remaining_enemies == 0) {

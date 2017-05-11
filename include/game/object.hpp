@@ -90,7 +90,6 @@ protected:
     uint32_t m_last_contact = -1;
     AABB m_aabb;
     Motion m_motion;
-    bool m_fixed = false;
     float m_expiration_time;
 
 public:
@@ -177,8 +176,12 @@ public:
             m_motion.v *= bounciness;
             other.m_motion.v *= bounciness;
         }
-        this->got_hit(other.m_id, time);
-        other.got_hit(m_id, time);
+        if (other.is_active()) {
+            this->got_hit(other.m_id, time);
+        }
+        if (this->is_active()) {
+            other.got_hit(m_id, time);
+        }
         m_last_contact = other.m_id;
         other.m_last_contact = m_id;
     }

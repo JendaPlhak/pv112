@@ -23,7 +23,7 @@ public:
         const GLuint tex, const glm::vec3& center, const glm::vec3& scale,
         const Motion& motion);
 
-    virtual glm::mat4 update_geometry(const float time) final override;
+    virtual glm::mat4 update_geometry(const float time);
     virtual void render(const float time_delta) override;
     virtual bool check_collision(const Object& other) const final override;
     virtual float mass() const final override;
