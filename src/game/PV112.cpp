@@ -709,6 +709,7 @@ void PV112Camera::OnMouseMoved(int x, int y, float time_delta)
     float dy = float(y - last_y);
     horizontal_angle += mouse_speed * time_delta * float(dx);
     vertical_angle   += mouse_speed * time_delta * float(dy);
+    vertical_angle = std::max(std::min(vertical_angle, 3.1415f/2.0f), -3.1415f/2.0f);
     last_x = x;
     last_y = y;
     this->update_attributes();
@@ -753,9 +754,9 @@ void PV112Camera::clamp_position() {
 void PV112Camera::update_attributes() {
     // Direction : Spherical coordinates to Cartesian coordinates conversion
     attr.direction = glm::vec3(
-        cos(vertical_angle) * sin(horizontal_angle),
-        sin(vertical_angle),
-        cos(vertical_angle) * cos(horizontal_angle)
+        cos(vertical_angle + 3.1415f) * sin(horizontal_angle),
+        sin(vertical_angle + 3.1415f),
+        cos(vertical_angle + 3.1415f) * cos(horizontal_angle)
     );
     // Right vector
     attr.right = glm::vec3(
